@@ -6,7 +6,7 @@
 // }
 
 var conn_obj = {
-    host: 'localhost',
+    host: '192.163.207.105',
     user: 'sib9706_live_u',
     password: 'K$Od%.W}%MI6',
     database: 'sib9706_live_db'

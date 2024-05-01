@@ -75,6 +75,6 @@ app.use('/api/blog', blogRoute);
 app.use('/api/home', homeRoute);
 
 // Start the server
-app.listen(4000, () => {
-    console.log('Server is running on port 4000');
+app.listen(3001, () => {
+    console.log('Server is running on port 3001');
 });
