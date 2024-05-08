@@ -35,6 +35,9 @@ app.use(express.urlencoded({ extended: true }));
 // console.log('dirname = ' + __dirname);
 
 let adminRoute = require(__dirname + '/routes/api/adminRoute');
+app.get('/', (req, res) => {
+    res.send("Express server is running");
+});
 app.use('/api/admin', adminRoute);
 
 let categoryRoute = require(__dirname + '/routes/api/categoryRoute');
