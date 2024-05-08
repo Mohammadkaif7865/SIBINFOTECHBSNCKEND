@@ -86,6 +86,31 @@ var submit_enquiry = (req, res) => {
   });
 
 }
+var submit_banner_enquiry = (req, res) => {
+
+  let formData = {
+     name: req.body.name,
+     cname: req.body.cname,
+     email: req.body.email,
+     phone: req.body.phone,
+     details: req.body.details,
+     service: req.body.service,
+     website: req.body.website,
+     pageUrl: req.body.pageUrl,
+     createdAt: dateFormat(Date.now(), "yyyy-mm-dd HH:MM:ss"),
+     updatedAt: dateFormat(Date.now(), "yyyy-mm-dd HH:MM:ss")
+  }
+
+  let sql = 'INSERT INTO banner_enquiry SET ?';
+  connection.query(sql, formData, (err) => {
+    if (!err) {
+      res.json({error: false, message: 'Successfully sent'});
+    } else {
+      res.json({error: true, message: 'Something went wrong'});
+    }
+  });
+
+}
 
 
 var careersData = async (req, res) => {
@@ -269,4 +294,4 @@ var career_enquiry = (req, res) => {
 
 }
 
-module.exports = { dashboardData, enquiriesData, enquiryDeleteData, careersData, careerEditData, careerDeleteData, submit_enquiry, career_enquiry }
+module.exports = { dashboardData, enquiriesData, enquiryDeleteData, careersData, careerEditData, careerDeleteData, submit_enquiry, career_enquiry, submit_banner_enquiry }

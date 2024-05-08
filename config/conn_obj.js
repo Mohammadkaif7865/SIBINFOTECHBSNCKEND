@@ -4,9 +4,10 @@
 //     password: '',
 //     database: 'sib_live_db'
 // }
-
+// 192.163.207.105:3306
+// 192.163.207.105:2083
 var conn_obj = {
-    host: '192.163.207.105',
+    host: 'localhost',
     user: 'sib9706_live_u',
     password: 'K$Od%.W}%MI6',
     database: 'sib9706_live_db'
