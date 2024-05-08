@@ -9,7 +9,7 @@
 var conn_obj = {
     host: 'localhost',
     user: 'sib9706_live_u',
-    password: 'K$Od%.W}%MI6',
+    password: 'New$tr0ngP@ssw0rd',
     database: 'sib9706_live_db'
 }
 
