@@ -8,7 +8,7 @@
 // 192.163.207.105:2083
 var conn_obj = {
     host: 'localhost',
-    user: 'sib9706_live_u',
+    user: 'root',
     password: 'New$tr0ngP@ssw0rd',
     database: 'sib9706_live_db'
 }
