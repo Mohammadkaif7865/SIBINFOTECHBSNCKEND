@@ -46,5 +46,7 @@ app.use('/api/blog', blogRoute);
 let homeRoute = require(__dirname + '/routes/api/homeRoute');
 app.use('/api/home', homeRoute);
 
-app.listen(4001);
+app.listen(4001,  () => {
+    console.log('Server is running on port 4001');
+});
 
