@@ -5,8 +5,6 @@ var dateFormat = require('dateformat');
 const paginate = require('express-paginate');
 var moment = require('moment-timezone');
 const cors = require('cors');
-const path = require('path');
-
 var bodyParser = require('body-parser')
 
 moment().tz("Asia/Kolkata").format();
@@ -31,7 +29,7 @@ app.use(paginate.middleware(10, 50));
 app.use(cookieParser());
 app.set('view engine', 'ejs');
 app.use('/public', express.static('assets'));
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use('/uploads', express.static('uploads'));
 app.use(express.urlencoded({ extended: true }));
 
 // console.log('dirname = ' + __dirname);
