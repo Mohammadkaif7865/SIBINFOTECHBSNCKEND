@@ -25,11 +25,15 @@ app.use(express.json())
 
 // keep this before all routes that will use pagination
 app.use(paginate.middleware(10, 50));
+// Add a base route for '/api' to handle generic API requests
+app.get('/api', (req, res) => {
+    res.status(200).json({ message: "Welcome to the API" });
+});
 
 app.use(cookieParser());
 app.set('view engine', 'ejs');
 app.use('/public', express.static('assets'));
-app.use('/uploads', express.static('uploads'));
+app.use('/api/uploads', express.static('uploads'));
 app.use(express.urlencoded({ extended: true }));
 
 // console.log('dirname = ' + __dirname);
