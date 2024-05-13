@@ -86,6 +86,26 @@ var submit_enquiry = (req, res) => {
   });
 
 }
+var submit_quotes = (req, res) => {
+
+  let formData = {
+     name: req.body.name,
+     email: req.body.email,
+     message: req.body.message,
+     createdAt: dateFormat(Date.now(), "yyyy-mm-dd HH:MM:ss"),
+     updatedAt: dateFormat(Date.now(), "yyyy-mm-dd HH:MM:ss")
+  }
+
+  let sql = 'INSERT INTO contact_enquiry SET ?';
+  connection.query(sql, formData, (err) => {
+    if (!err) {
+      res.json({error: false, message: 'Successfully sent'});
+    } else {
+      res.json({error: true, message: 'Something went wrong'});
+    }
+  });
+
+}
 var submit_banner_enquiry = (req, res) => {
 
   let formData = {
@@ -294,4 +314,4 @@ var career_enquiry = (req, res) => {
 
 }
 
-module.exports = { dashboardData, enquiriesData, enquiryDeleteData, careersData, careerEditData, careerDeleteData, submit_enquiry, career_enquiry, submit_banner_enquiry }
+module.exports = { dashboardData, enquiriesData, enquiryDeleteData, careersData, careerEditData, careerDeleteData, submit_enquiry, career_enquiry, submit_banner_enquiry, submit_quotes }
