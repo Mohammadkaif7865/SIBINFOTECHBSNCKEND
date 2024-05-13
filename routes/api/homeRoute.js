@@ -28,8 +28,8 @@ router.get('/enquiry/all', token.validateToken, homeController.enquiriesData);
 
 router.post('/enquiry/delete', token.validateToken, upload.fields([]), homeController.enquiryDeleteData);
 
-router.post('/submit_enquiry', token.validateToken, homeController.submit_enquiry);
-router.post('/submit_banner_enquiry', token.validateToken, homeController.submit_banner_enquiry);
+router.post('/submit_enquiry', token.validateToken,upload.fields([]), homeController.submit_enquiry);
+router.post('/submit_banner_enquiry', token.validateToken,upload.fields([]), homeController.submit_banner_enquiry);
 
 router.post('/career_enquiry', token.validateToken, upload.fields([{
  name: 'resume', maxCount: 1
