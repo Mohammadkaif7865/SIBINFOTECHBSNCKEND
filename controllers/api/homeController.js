@@ -96,7 +96,7 @@ var submit_quotes = (req, res) => {
      updatedAt: dateFormat(Date.now(), "yyyy-mm-dd HH:MM:ss")
   }
 
-  let sql = 'INSERT INTO contact_enquiry SET ?';
+  let sql = 'INSERT INTO quotes_data SET ?';
   connection.query(sql, formData, (err) => {
     if (!err) {
       res.json({error: false, message: 'Successfully sent'});
