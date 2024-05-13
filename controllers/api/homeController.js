@@ -92,8 +92,8 @@ var submit_quotes = (req, res) => {
      name: req.body.name,
      email: req.body.email,
      message: req.body.message,
-     createdAt: dateFormat(Date.now(), "yyyy-mm-dd HH:MM:ss"),
-     updatedAt: dateFormat(Date.now(), "yyyy-mm-dd HH:MM:ss")
+     created_at: dateFormat(Date.now(), "yyyy-mm-dd HH:MM:ss"),
+     updated_at: dateFormat(Date.now(), "yyyy-mm-dd HH:MM:ss")
   }
 
   let sql = 'INSERT INTO messages SET ?';
