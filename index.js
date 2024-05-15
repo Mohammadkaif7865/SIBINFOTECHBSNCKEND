@@ -22,7 +22,15 @@ app.use(cors());
 
 app.use(express.json())
 // app.use(express.urlencoded({ extended: true }))
-
+const transporter = nodemailer.createTransport({
+    host: process.env.MAIL_HOST, // Your SMTP host
+    port: 587, // Your SMTP port
+    secure: false, // Whether your SMTP server uses SSL
+    auth: {
+      user: process.env.MAIL_USER, // SMTP username
+      pass: process.env.MAIL_PASS, // SMTP password
+    },
+  });
 // keep this before all routes that will use pagination
 app.use(paginate.middleware(10, 50));
 // Add a base route for '/api' to handle generic API requests
