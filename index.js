@@ -5,6 +5,8 @@ var dateFormat = require('dateformat');
 const paginate = require('express-paginate');
 var moment = require('moment-timezone');
 const cors = require('cors');
+const nodemailer = require("nodemailer");
+
 var bodyParser = require('body-parser')
 
 moment().tz("Asia/Kolkata").format();
