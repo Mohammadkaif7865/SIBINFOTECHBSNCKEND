@@ -33,6 +33,10 @@ const transporter = nodemailer.createTransport({
       pass: process.env.MAIL_PASS, // SMTP password
     },
   });
+  app.use((req, res, next) => {
+    console.log("Request URL:", req.originalUrl); // Log the incoming request URL
+    next();
+  });
 // keep this before all routes that will use pagination
 app.use(paginate.middleware(10, 50));
 // Add a base route for '/api' to handle generic API requests
