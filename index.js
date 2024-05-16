@@ -106,7 +106,7 @@ app.post("/api/send-email", (req, res) => {
       from: "SIB Infotech <contact@sibinfotech.com>",
       to: "contact@sibinfotech.com",
       cc: "radhey@sibinfotech.com",
-      subject: "New Inquiry from Digital Marketing Services Mumbai Landing Page",
+      subject: "Website Enquiry from Banner",
       html: html,
     };
   
