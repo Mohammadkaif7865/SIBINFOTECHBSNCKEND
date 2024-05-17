@@ -6,6 +6,7 @@ const paginate = require('express-paginate');
 var moment = require('moment-timezone');
 const cors = require('cors');
 const nodemailer = require("nodemailer");
+const fs = require('fs');
 
 var bodyParser = require('body-parser')
 
@@ -132,11 +133,20 @@ app.post("/api/send-email", (req, res) => {
       res.status(200).json({ message: "Email sent successfully" });  });
   });
   app.post("/api/send-email-application", (req, res) => {
-    const { html, fromWhere } = req.body;
+    const { html, fromWhere, resumePath } = req.body;
     console.log("DSSDFSDFSDFSDF", html);
+    let pdfBuffer = fs.readFileSync(resumePath);
+
     const mailOptions = {
       from: "SIB Infotech <contact@sibinfotech.com>",
       to:"mohammadkaif051197@gmail.com",
+      attachments: [
+        {
+            filename: 'document.pdf', // Filename of the attachment
+            content: pdfBuffer, // Buffer of the file
+            contentType: 'application/pdf' // Mime type of the file
+        }
+    ],
     //   to: "contact@sibinfotech.com",
     //   cc: "radhey@sibinfotech.com",
       subject: `New Job Application ${fromWhere}`,
