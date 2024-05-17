@@ -100,13 +100,14 @@ app.post("/api/send-email", (req, res) => {
     });
   });
   app.post("/api/send-email-any", (req, res) => {
-    const { html } = req.body;
+    const { html, fromWhere } = req.body;
     console.log("DSSDFSDFSDFSDF", html);
     const mailOptions = {
       from: "SIB Infotech <contact@sibinfotech.com>",
-      to: "contact@sibinfotech.com",
-      cc: "radhey@sibinfotech.com",
-      subject: "Website Enquiry from Banner",
+      to:"mohammadkaif051197@gmail.com",
+    //   to: "contact@sibinfotech.com",
+    //   cc: "radhey@sibinfotech.com",
+      subject: `Website Enquiry from ${fromWhere}`,
       html: html,
     };
   
