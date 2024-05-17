@@ -194,7 +194,7 @@ var career_enquiry = (req, res) => {
   let resumePath = '';
   if(req.files.resume != undefined) {
     resumePath = req.files.resume[0].destination + req.files.resume[0].filename;
-    console.log("this the change", req.files.resume[0].name, req.files);
+    console.log("this the change", req.files.resume[0].originalname);
   }
 
   let inputs = JSON.parse(req.body.inputs);
@@ -307,7 +307,7 @@ var career_enquiry = (req, res) => {
   ], function (err, result) {
       if (result) {
         console.log("this is the file path", resumePath);
-        res.json({error: false, message: 'Successfully sent', resumePath});
+        res.json({error: false, message: 'Successfully sent', resumePath, resumeName:  req.files.resume[0].originalname});
       } else {
         console.log("Thsi is hte error I can get ", err);
         res.json({error: true, message: 'Something went wrong1'});
