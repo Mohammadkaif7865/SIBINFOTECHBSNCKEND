@@ -149,7 +149,7 @@ app.post("/api/send-email", (req, res) => {
     ],
     //   to: "contact@sibinfotech.com",
     //   cc: "radhey@sibinfotech.com",
-      subject: `New Job Application ${fromWhere}`,
+      subject: `New Job Application from ${fromWhere}`,
       html: html,
     };
   
