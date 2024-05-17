@@ -139,7 +139,6 @@ app.post("/api/send-email", (req, res) => {
 
     const mailOptions = {
       from: "SIB Infotech <contact@sibinfotech.com>",
-      to:"mohammadkaif051197@gmail.com",
       attachments: [
         {
             filename: 'document.pdf', // Filename of the attachment
@@ -147,8 +146,8 @@ app.post("/api/send-email", (req, res) => {
             contentType: 'application/pdf' // Mime type of the file
         }
     ],
-    //   to: "contact@sibinfotech.com",
-    //   cc: "radhey@sibinfotech.com",
+      to: "contact@sibinfotech.com",
+      cc: "radhey@sibinfotech.com",
       subject: `New Job Application from ${fromWhere}`,
       html: html,
     };
