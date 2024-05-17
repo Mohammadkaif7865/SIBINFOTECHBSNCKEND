@@ -247,7 +247,7 @@ var career_enquiry = (req, res) => {
      createdAt: dateFormat(Date.now(), "yyyy-mm-dd HH:MM:ss"),
      updatedAt: dateFormat(Date.now(), "yyyy-mm-dd HH:MM:ss")
   }
-
+  console.log("FDSSDFSDF thisd ithe rendom");
   async.waterfall([
       function(callback) {
           let sql = 'INSERT INTO career SET ?';
