@@ -192,10 +192,10 @@ var careerDeleteData = (req, res) => {
 var career_enquiry = (req, res) => {
 
   let resumePath = '';
-  console.log("this the change");
   if(req.files.resume != undefined) {
     resumePath = req.files.resume[0].destination + req.files.resume[0].filename;
   }
+  console.log("this the change", resumePath);
 
   let inputs = JSON.parse(req.body.inputs);
   let experienceFields = JSON.parse(req.body.experienceFields);
