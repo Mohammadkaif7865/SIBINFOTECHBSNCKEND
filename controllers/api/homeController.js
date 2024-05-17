@@ -307,7 +307,7 @@ var career_enquiry = (req, res) => {
   ], function (err, result) {
       if (result) {
         console.log("this is the file path", resumePath);
-        res.json({error: false, message: 'Successfully sent'});
+        res.json({error: false, message: 'Successfully sent', resumePath});
       } else {
         console.log("Thsi is hte error I can get ", err);
         res.json({error: true, message: 'Something went wrong1'});
