@@ -309,6 +309,7 @@ var career_enquiry = (req, res) => {
         // console.log("this is the file path", resumePath);
         res.json({error: false, message: 'Successfully sent'});
       } else {
+        console.log("Thsi is hte error I can get ", err);
         res.json({error: true, message: 'Something went wrong1'});
       }
   });
