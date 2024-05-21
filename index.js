@@ -51,7 +51,7 @@ app.post("/api/send-email", (req, res) => {
       to: "contact@sibinfotech.com",
     //   to: "mohammadkaif051197@gmail.com",
       cc: "radhey@sibinfotech.com",
-      subject: `New Inquiry from Digital Marketing Services ${fromWhere} Landing Page`,
+      subject: `Digital Marketing Services Mumbai ${fromWhere} Landing Page`,
       html: `
               <p>Dear Admin,</p>
               <p>You have received an enquiry from:</p>
