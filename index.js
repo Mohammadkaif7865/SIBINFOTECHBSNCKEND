@@ -44,13 +44,14 @@ app.get('/api', (req, res) => {
     res.status(200).json({ message: "Welcome to the API" });
 });
 app.post("/api/send-email", (req, res) => {
-    const { name, company, website, email, phone } = req.body;
+    const { name, company, website, email, phone, fromWhere } = req.body;
     console.log("DSSDFSDFSDFSDF", name, company, website, email);
     const mailOptions = {
       from: "SIB Infotech <contact@sibinfotech.com>",
-      to: "contact@sibinfotech.com",
-      cc: "radhey@sibinfotech.com",
-      subject: "New Inquiry from Digital Marketing Services Mumbai Landing Page",
+    //   to: "contact@sibinfotech.com",
+      to: "mohammadkaif051197@gmail.com",
+    //   cc: "radhey@sibinfotech.com",
+      subject: `New Inquiry from Digital Marketing Services ${fromWhere} Landing Page`,
       html: `
               <p>Dear Admin,</p>
               <p>You have received an enquiry from:</p>
@@ -97,7 +98,7 @@ app.post("/api/send-email", (req, res) => {
                   </html>
               `);
       }
-      res.redirect("https://sibinfotech.com/thanks");
+      res.status(200).json({ message: "Email sent successfully" });  
     });
   });
   app.post("/api/send-email-any", (req, res) => {
@@ -133,7 +134,7 @@ app.post("/api/send-email", (req, res) => {
       res.status(200).json({ message: "Email sent successfully" });  });
   });
   app.post("/api/send-email-application", (req, res) => {
-    const { html, fromWhere, resumePath } = req.body;
+    const { html, fromWhere, resumePath, resumeName } = req.body;
     console.log("DSSDFSDFSDFSDF", html);
     let pdfBuffer = fs.readFileSync(resumePath);
 
@@ -141,7 +142,7 @@ app.post("/api/send-email", (req, res) => {
       from: "SIB Infotech <contact@sibinfotech.com>",
       attachments: [
         {
-            filename: 'document.pdf', // Filename of the attachment
+            filename: resumeName, // Filename of the attachment
             content: pdfBuffer, // Buffer of the file
             contentType: 'application/pdf' // Mime type of the file
         }
