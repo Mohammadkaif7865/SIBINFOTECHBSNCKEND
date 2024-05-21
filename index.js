@@ -147,8 +147,7 @@ app.post("/api/send-email", (req, res) => {
             contentType: 'application/pdf' // Mime type of the file
         }
     ],
-      to: "contact@sibinfotech.com",
-      cc: "radhey@sibinfotech.com",
+      to: "career@sibinfotech.com",
       subject: `New Job Application from ${fromWhere}`,
       html: html,
     };
