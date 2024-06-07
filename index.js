@@ -49,10 +49,10 @@ app.post("/api/send-email", (req, res) => {
   console.log("DSSDFSDFSDFSDF", name, company, website, email);
   const mailOptions = {
     from: "SIB Infotech <contact@sibinfotech.com>",
-    // to: "contact@sibinfotech.com",
+    // to: "radhey@sibinfotech.com",
     to: "mohammadkaif051197@gmail.com",
     // cc: "radhey@sibinfotech.com",
-    subject: `Digital Marketing Services ${fromWhere} Landing Page`,
+    subject: `Enquiry Landing Page - ${fromWhere} `,
     html: `
               <p>Dear Admin,</p>
               <p>You have received an enquiry from:</p>
