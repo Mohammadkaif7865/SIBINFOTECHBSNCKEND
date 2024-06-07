@@ -118,7 +118,7 @@ app.post("/api/send-email-any", (req, res) => {
     to: "mohammadkaif051197@gmail.com",
     // to: "contact@sibinfotech.com",
     // cc: "radhey@sibinfotech.com",
-    subject: `Website Enquiry from ${fromWhere}`,
+    subject: `${fromWhere}`,
     html: html,
   };
 
