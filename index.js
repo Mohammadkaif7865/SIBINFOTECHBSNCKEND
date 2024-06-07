@@ -82,8 +82,8 @@ app.post("/api/send-email", (req, res) => {
                       <td style='padding:10px;'>${phone}</td>
                   </tr>
                   <tr>
-                      <td style='padding:10px;' width='250'>Message</td>
-                      <td style='padding:10px;'>${message}</td>
+                      <p style='padding:10px; text-decoration: underline;' >Message</p>
+                      <p style='padding:10px; margin-top: 8px'>${message}</p>
                   </tr>
               </table>`,
   };
