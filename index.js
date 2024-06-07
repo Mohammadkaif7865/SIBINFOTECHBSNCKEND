@@ -58,27 +58,27 @@ app.post("/api/send-email", (req, res) => {
               <p>You have received an enquiry from:</p>
               <table width='500' border='1' cellspacing='0'>
                   <tr>
-                      <td style='padding:10px;' width='200'>Full Name</td>
+                      <td style='padding:10px;'>Full Name</td>
                       <td style='padding:10px;'>${name}</td>
                   </tr>
                   <tr>
-                      <td style='padding:10px;' width='200'>Company Name</td>
+                      <td style='padding:10px;'>Company Name</td>
                       <td style='padding:10px;'>${company}</td>
                   </tr>
                   <tr>
-                      <td style='padding:10px;' width='200'>Website url</td>
+                      <td style='padding:10px;'>Website url</td>
                       <td style='padding:10px;'>${website}</td>
                   </tr>
                   <tr>
-                      <td style='padding:10px;' width='200'>Email</td>
+                      <td style='padding:10px;'>Email</td>
                       <td style='padding:10px;'>${email}</td>
                   </tr>
                   <tr>
-                      <td style='padding:10px;' width='200'>Service</td>
+                      <td style='padding:10px;'>Service</td>
                       <td style='padding:10px;'>${service}</td>
                   </tr>
                   <tr>
-                      <td style='padding:10px;' width='200'>Phone Number</td>
+                      <td style='padding:10px;'>Phone Number</td>
                       <td style='padding:10px;'>${phone}</td>
                   </tr>
                   <tr>
