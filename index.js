@@ -46,12 +46,9 @@ app.get("/api", (req, res) => {
 app.post("/api/send-email", (req, res) => {
   const { name, company, website, email, phone, fromWhere, service, message } =
     req.body;
-  console.log("DSSDFSDFSDFSDF", name, company, website, email);
   const mailOptions = {
     from: "SIB Infotech <contact@sibinfotech.com>",
-    // to: "radhey@sibinfotech.com",
-    to: "mohammadkaif051197@gmail.com",
-    // cc: "radhey@sibinfotech.com",
+    to: "radhey@sibinfotech.com",
     subject: `Enquiry Landing Page - ${fromWhere} `,
     html: `
               <p>Dear Admin,</p>
