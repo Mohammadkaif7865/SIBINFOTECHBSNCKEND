@@ -56,7 +56,7 @@ app.post("/api/send-email", (req, res) => {
     html: `
               <p>Dear Admin,</p>
               <p>You have received an enquiry from:</p>
-              <table width='500' border='1' cellspacing='0'>
+              <table style='width: 100%;' border='1' cellspacing='0'>
                   <tr>
                       <td style='padding:10px;'>Full Name</td>
                       <td style='padding:10px;'>${name}</td>
