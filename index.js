@@ -112,12 +112,11 @@ app.post("/api/send-email", (req, res) => {
 });
 app.post("/api/send-email-any", (req, res) => {
   const { html, fromWhere } = req.body;
-  console.log("DSSDFSDFSDFSDF", html);
   const mailOptions = {
     from: "SIB Infotech <contact@sibinfotech.com>",
-    to: "mohammadkaif051197@gmail.com",
-    // to: "contact@sibinfotech.com",
-    // cc: "radhey@sibinfotech.com",
+    // to: "mohammadkaif051197@gmail.com",
+    to: "contact@sibinfotech.com",
+    cc: "radhey@sibinfotech.com",
     subject: `${fromWhere}`,
     html: html,
   };
@@ -146,7 +145,6 @@ app.post("/api/send-email-any", (req, res) => {
 });
 app.post("/api/send-email-application", (req, res) => {
   const { html, fromWhere, resumePath, resumeName } = req.body;
-  console.log("DSSDFSDFSDFSDF", html);
   let pdfBuffer = fs.readFileSync(resumePath);
 
   const mailOptions = {
@@ -159,7 +157,7 @@ app.post("/api/send-email-application", (req, res) => {
       },
     ],
     to: "career@sibinfotech.com",
-    subject: `New Job Application from ${fromWhere}`,
+    subject: `${fromWhere}`,
     html: html,
   };
 
