@@ -115,8 +115,9 @@ app.post("/api/send-email-any", (req, res) => {
   console.log("DSSDFSDFSDFSDF", html);
   const mailOptions = {
     from: "SIB Infotech <contact@sibinfotech.com>",
-    to: "contact@sibinfotech.com",
-    cc: "radhey@sibinfotech.com",
+    to: "mohammadkaif051197@gmail.com",
+    // to: "contact@sibinfotech.com",
+    // cc: "radhey@sibinfotech.com",
     subject: `Website Enquiry from ${fromWhere}`,
     html: html,
   };
