@@ -148,7 +148,7 @@ app.post("/api/send-email-application", (req, res) => {
   let pdfBuffer = fs.readFileSync(resumePath);
 
   const mailOptions = {
-    from: "SIB Infotech <contact@sibinfotech.com>",
+    from: "SIB Infotech <website@sibinfotech.com>",
     attachments: [
       {
         filename: resumeName, // Filename of the attachment
