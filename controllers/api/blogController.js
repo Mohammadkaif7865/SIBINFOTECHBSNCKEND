@@ -86,7 +86,14 @@ var blogEditData = (req, res) => {
     }
   });
 };
-
+// Function to format date to YYYY-MM-DD
+function formatDate(dateString) {
+  let date = new Date(dateString);
+  let year = date.getFullYear();
+  let month = ("0" + (date.getMonth() + 1)).slice(-2); // Months are zero based
+  let day = ("0" + date.getDate()).slice(-2);
+  return `${year}-${month}-${day}`;
+}
 var blogEdit = (req, res) => {
   let imagePath = "";
 
@@ -104,7 +111,7 @@ var blogEdit = (req, res) => {
     }),
     image: imagePath,
     description: req.body.description,
-    bdate: req.body.bdate,
+    bdate: formatDate(req.body.bdate), // Format the date here
     meta_title: req.body.meta_title,
     meta_keywords: req.body.meta_keywords,
     meta_description: req.body.meta_description,
