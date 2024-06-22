@@ -112,6 +112,7 @@ var blogEdit = (req, res) => {
     updatedAt: dateFormat(Date.now(), "yyyy-mm-dd HH:MM:ss"),
   };
   console.log("This is the id +++++++++++++++++++++", req.body.id);
+  console.log("This is the id +++++++++++++++++++++2", formData);
   let sql = `UPDATE blog SET ? WHERE id = '${req.body.id}'`;
 
   connection.query(sql, formData, function (err) {
