@@ -115,9 +115,9 @@ var blogEdit = (req, res) => {
 
   connection.query(sql, formData, function (err) {
     if (!err) {
-      console.log("This is the error ", err);
       res.json({ error: false, message: "Successfully updated" });
     } else {
+      console.log("This is the error ", err);
       res.json({ error: true, message: "Something went wrong" });
     }
   });
