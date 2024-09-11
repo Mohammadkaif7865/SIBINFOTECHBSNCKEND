@@ -42,9 +42,7 @@ var blogAdd = (req, res) => {
   let formData = {
     category_id: req.body.category_id,
     name: req.body.name,
-    slug: slugify(req.body.name, {
-      lower: true,
-    }),
+    slug : slugify(req.body.name, { lower: true,remove: /[*+~.()'"!:@#%^&${}<>?/|]/g,}),
     image: imagePath,
     description: req.body.description,
     bdate: req.body.bdate,
