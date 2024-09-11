@@ -104,8 +104,9 @@ var blogEdit = (req, res) => {
   let formData = {
     category_id: req.body.category_id,
     name: req.body.name,
-    slug: slugify(req.body.name, {
+    slug: slugify(req.body.slug, {
       lower: true,
+      remove: /[*+~.()'"!:@#%^&${}<>?/|]/g,
     }),
     image: imagePath,
     description: req.body.description,
