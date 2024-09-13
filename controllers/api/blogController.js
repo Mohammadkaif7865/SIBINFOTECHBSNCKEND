@@ -34,16 +34,26 @@ var blogsData = (req, res) => {
 
 var blogAdd = (req, res) => {
   let imagePath = "";
-
+  // if (req.files.image != undefined) {
+  //   imagePath = req.files.image[0].destination + req.files.image[0].filename;
+  // }
   if (req.files.image != undefined) {
-    imagePath = req.files.image[0].destination + req.files.image[0].filename;
+    let customImageName = req.body.image_name;
+    let fileExtension = path.extname(req.files.image[0].originalname);
+    let newFileName = `${customImageName}${fileExtension}`;
+    imagePath = req.files.image[0].destination + newFileName;
+    fs.renameSync(req.files.image[0].path, imagePath);
   }
-
   let formData = {
     category_id: req.body.category_id,
     name: req.body.name,
-    slug : slugify(req.body.name, { lower: true,remove: /[*+~.()'"!:@#%^&${}<>?/|]/g,}),
+    slug: slugify(req.body.name, {
+      lower: true,
+      remove: /[*+~.()'"!:@#%^&${}<>?/|]/g,
+    }),
     image: imagePath,
+    image_name: req.body.image_name, //need to add in table first
+    image_alt: req.body.image_alt, //need to add in table first
     description: req.body.description,
     bdate: req.body.bdate,
     meta_title: req.body.meta_title,
@@ -94,7 +104,13 @@ function formatDate(dateString) {
 }
 var blogEdit = (req, res) => {
   let imagePath = "";
-
+  if (req.files.image != undefined) {
+    let customImageName = req.body.image_name;
+    let fileExtension = path.extname(req.files.image[0].originalname);
+    let newFileName = `${customImageName}${fileExtension}`;
+    imagePath = req.files.image[0].destination + newFileName;
+    fs.renameSync(req.files.image[0].path, imagePath);
+  }
   if (req.files.image != undefined) {
     imagePath = req.files.image[0].destination + req.files.image[0].filename;
   } else {
@@ -109,6 +125,8 @@ var blogEdit = (req, res) => {
       remove: /[*+~.()'"!:@#%^&${}<>?/|]/g,
     }),
     image: imagePath,
+    image_name: req.body.image_name, //need to add in table first
+    image_alt: req.body.image_alt, //need to add in table first
     description: req.body.description,
     bdate: formatDate(req.body.bdate), // Format the date here
     meta_title: req.body.meta_title,
