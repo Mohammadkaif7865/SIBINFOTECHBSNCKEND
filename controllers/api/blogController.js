@@ -4,6 +4,7 @@ var dateFormat = require("dateformat");
 var moment = require("moment");
 const fs = require("fs");
 var slugify = require("slugify");
+const path = require("path");
 
 var blogsData = (req, res) => {
   let condition = "";
