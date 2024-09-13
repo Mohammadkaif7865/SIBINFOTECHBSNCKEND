@@ -111,9 +111,6 @@ var blogEdit = (req, res) => {
     let newFileName = `${customImageName}${fileExtension}`;
     imagePath = req.files.image[0].destination + newFileName;
     fs.renameSync(req.files.image[0].path, imagePath);
-  }
-  if (req.files.image != undefined) {
-    imagePath = req.files.image[0].destination + req.files.image[0].filename;
   } else {
     imagePath = req.body.imageHidden;
   }
