@@ -2,7 +2,7 @@ const async = require("async");
 var connection = require("../../config/connection");
 var dateFormat = require("dateformat");
 var moment = require("moment");
-
+const fs = require("fs");
 var slugify = require("slugify");
 
 var blogsData = (req, res) => {
