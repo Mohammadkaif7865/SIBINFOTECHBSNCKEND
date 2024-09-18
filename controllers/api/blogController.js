@@ -6,6 +6,7 @@ const fs = require("fs");
 var slugify = require("slugify");
 const path = require("path");
 
+
 var blogsData = (req, res) => {
   let condition = "";
   let limit = "";
@@ -39,6 +40,7 @@ var blogAdd = (req, res) => {
   //   imagePath = req.files.image[0].destination + req.files.image[0].filename;
   // }
   if (req.files.image != undefined) {
+    console.log(req.body)
     let customImageName = req.body.image_name;
     let fileExtension = path.extname(req.files.image[0].originalname);
     let newFileName = `${customImageName}${fileExtension}`;
@@ -103,50 +105,105 @@ function formatDate(dateString) {
   let day = ("0" + date.getDate()).slice(-2);
   return `${year}-${month}-${day}`;
 }
+
 var blogEdit = (req, res) => {
   let imagePath = "";
-  if (req.files.image != undefined) {
-    let customImageName = req.body.image_name;
-    let fileExtension = path.extname(req.files.image[0].originalname);
-    let newFileName = `${customImageName}${fileExtension}`;
-    imagePath = req.files.image[0].destination + newFileName;
-    fs.renameSync(req.files.image[0].path, imagePath);
-  }
-  if (req.files.image != undefined) {
-    imagePath = req.files.image[0].destination + req.files.image[0].filename;
+  let previousImagePath = req.body.imageHidden;
+
+  // If previousImagePath is not provided, fetch it from the database
+  if (!previousImagePath) {
+    let fetchSql = `SELECT image FROM blog WHERE id = '${req.body.id}'`;
+    connection.query(fetchSql, function (err, result) {
+      if (err) {
+        console.error("Error fetching previous image path: ", err);
+        return res.json({ error: true, message: "Something went wrong" });
+      }
+
+      if (result.length > 0) {
+        previousImagePath = result[0].image;
+        proceedWithUpdate();
+      } else {
+        return res.json({ error: true, message: "Blog post not found" });
+      }
+    });
   } else {
-    imagePath = req.body.imageHidden;
+    proceedWithUpdate();
   }
 
-  let formData = {
-    category_id: req.body.category_id,
-    name: req.body.name,
-    slug: slugify(req.body.slug, {
-      lower: true,
-      remove: /[*+~.()'"!:@#%^&${}<>?/|]/g,
-    }),
-    image: imagePath,
-    image_name: req.body.image_name, //need to add in table first
-    image_alt: req.body.image_alt, //need to add in table first
-    description: req.body.description,
-    bdate: formatDate(req.body.bdate), // Format the date here
-    meta_title: req.body.meta_title,
-    meta_keywords: req.body.meta_keywords,
-    meta_description: req.body.meta_description,
-    publish: req.body.publish,
-    updatedAt: dateFormat(Date.now(), "yyyy-mm-dd HH:MM:ss"),
-  };
-  let sql = `UPDATE blog SET ? WHERE id = '${req.body.id}'`;
+  function proceedWithUpdate() {
+    if (req.files.image != undefined) {
+      let customImageName = req.body.image_name;
+      let fileExtension = path.extname(req.files.image[0].originalname);
+      let newFileName = `${customImageName}${fileExtension}`;
+      imagePath = req.files.image[0].destination + newFileName;
 
-  connection.query(sql, formData, function (err) {
-    if (!err) {
-      res.json({ error: false, message: "Successfully updated" });
+      // Delete the previous image
+      if (previousImagePath && fs.existsSync(previousImagePath)) {
+        fs.unlinkSync(previousImagePath);
+      }
+
+      fs.renameSync(req.files.image[0].path, imagePath);
     } else {
-      console.log("This is the error ", err);
-      res.json({ error: true, message: "Something went wrong" });
+      // Rename the previous image with the new name
+      if (previousImagePath && fs.existsSync(previousImagePath)) {
+        let customImageName = req.body.image_name;
+        let fileExtension = path.extname(previousImagePath);
+        let newFileName = `${customImageName}${fileExtension}`;
+        let newImagePath = path.join(path.dirname(previousImagePath), newFileName);
+
+        console.log("Previous Image Path: ", previousImagePath);
+        console.log("New Image Path: ", newImagePath);
+
+        try {
+          fs.renameSync(previousImagePath, newImagePath);
+          imagePath = newImagePath;
+          console.log("Image renamed successfully");
+        } catch (err) {
+          console.error("Error renaming the previous image: ", err);
+          imagePath = previousImagePath; // Fallback to the original path if renaming fails
+        }
+      } else {
+        imagePath = previousImagePath;
+      }
     }
-  });
+
+    let formData = {
+      category_id: req.body.category_id,
+      name: req.body.name,
+      slug: slugify(req.body.slug, {
+        lower: true,
+        remove: /[*+~.()'"!:@#%^&${}<>?/|]/g,
+      }),
+      image: imagePath,
+      image_name: req.body.image_name, // need to add in table first
+      image_alt: req.body.image_alt, // need to add in table first
+      description: req.body.description,
+      bdate: formatDate(req.body.bdate), // Format the date here
+      meta_title: req.body.meta_title,
+      meta_keywords: req.body.meta_keywords,
+      meta_description: req.body.meta_description,
+      publish: req.body.publish,
+      updatedAt: dateFormat(Date.now(), "yyyy-mm-dd HH:MM:ss"),
+    };
+
+    let sql = `UPDATE blog SET ? WHERE id = '${req.body.id}'`;
+
+    connection.query(sql, formData, function (err) {
+      if (!err) {
+        res.json({ error: false, message: "Successfully updated" });
+      } else {
+        console.log("This is the error ", err);
+        res.json({ error: true, message: "Something went wrong" });
+      }
+    });
+  }
 };
+
+
+
+
+
+
 
 var blogDeleteData = (req, res) => {
   let sql = `DELETE FROM blog WHERE id = '${req.body.id}'`;
