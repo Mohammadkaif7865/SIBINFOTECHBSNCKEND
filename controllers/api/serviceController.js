@@ -28,7 +28,7 @@ const serviceAdd = (req, res) => {
     updatedAt: dateFormat(new Date(), "yyyy-mm-dd HH:MM:ss"),
   };
 
-  const sql = "INSERT INTO service SET ?";
+  const sql = "INSERT INTO services_master SET ?";
   connection.query(sql, formData, (err) => {
     if (!err) {
       res.json({ error: false, message: "Service added successfully" });
@@ -63,7 +63,7 @@ const serviceEdit = (req, res) => {
     updatedAt: dateFormat(new Date(), "yyyy-mm-dd HH:MM:ss"),
   };
 
-  const sql = "UPDATE service SET ? WHERE id = ?";
+  const sql = "UPDATE services_master SET ? WHERE id = ?";
   connection.query(sql, [formData, req.body.id], (err) => {
     if (!err) {
       res.json({ error: false, message: "Service updated successfully" });
