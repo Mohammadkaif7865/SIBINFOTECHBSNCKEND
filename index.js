@@ -199,6 +199,8 @@ app.use("/api/category", categoryRoute);
 
 let blogRoute = require(__dirname + "/routes/api/blogRoute");
 app.use("/api/blog", blogRoute);
+let serviceRoute = require(__dirname + "/routes/api/serviceRoute");
+app.use("/api/service", serviceRoute);
 
 let homeRoute = require(__dirname + "/routes/api/homeRoute");
 app.use("/api/home", homeRoute);
