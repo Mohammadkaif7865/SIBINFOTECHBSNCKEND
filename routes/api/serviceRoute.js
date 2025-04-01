@@ -19,6 +19,7 @@ const upload = multer({ storage: storage });
 router.get("/all", token.validateToken, serviceController.servicesData);
 router.post("/add", token.validateToken, upload.none(), serviceController.serviceAdd);
 router.get("/single/:id", token.validateToken, serviceController.serviceEditData);
+router.get("/single-service/:slug", token.validateToken, serviceController.serviceGetData);
 router.post("/edit", token.validateToken, upload.none(), serviceController.serviceEdit);
 router.post("/delete", token.validateToken, serviceController.serviceDeleteData);
 

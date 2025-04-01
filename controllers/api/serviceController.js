@@ -49,6 +49,17 @@ const serviceEditData = (req, res) => {
     }
   });
 };
+// GET single service by ID
+const serviceGetData = (req, res) => {
+  const sql = "SELECT * FROM services_master WHERE slug = ?";
+  connection.query(sql, [req.params.slug], (err, result) => {
+    if (!err && result.length > 0) {
+      res.json({ service: result[0] });
+    } else {
+      res.json({ error: true, message: "Service not found" });
+    }
+  });
+};
 
 // EDIT service
 const serviceEdit = (req, res) => {
@@ -90,5 +101,6 @@ module.exports = {
   serviceAdd,
   serviceEditData,
   serviceEdit,
-  serviceDeleteData
+  serviceDeleteData,
+  serviceGetData
 };
