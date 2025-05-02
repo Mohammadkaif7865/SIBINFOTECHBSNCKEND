@@ -166,6 +166,26 @@ app.post("/api/send-email-any", (req, res) => {
     });
   });
 });
+app.get("/api/test-smtp", async (req, res) => {
+  try {
+    const info = await transporter.sendMail({
+      from: "SIB Infotech <contact@sibinfotech.com>",
+      to: "sibinfotech101@gmail.com",
+      subject: "🔥 SMTP Test Email - SIB Infotech",
+      html: `
+        <h2>SMTP is Working!</h2>
+        <p>This is a test email sent from the Node.js backend at ${new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })}.</p>
+        <p>If you're seeing this, SMTP is correctly configured 🚀</p>
+      `,
+    });
+
+    console.log("✅ SMTP test email sent:", info.messageId);
+    res.status(200).json({ success: true, message: "SMTP test email sent successfully!" });
+  } catch (err) {
+    console.error("❌ SMTP test failed:", err.message);
+    res.status(500).json({ success: false, message: "SMTP test failed", error: err.message });
+  }
+});
 
 app.post("/api/send-email-application", (req, res) => {
   const { html, fromWhere, resumePath, resumeName } = req.body;
