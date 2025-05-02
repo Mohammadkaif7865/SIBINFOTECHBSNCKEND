@@ -113,7 +113,7 @@ app.post("/api/send-email", (req, res) => {
 app.post("/api/send-ppc-results", validateToken, (req, res) => {
   const { html, fromWhere, userEmail, userName } = req.body;
   const mailOptions = {
-    from: "SIB Infotech <website@sibinfotech.com>",
+    from: "contact@sibinfotech.com",
     to: userEmail, // 👈 sent to the user
     cc: ["contact@sibinfotech.com", "radhey@sibinfotech.com"], // 👈 CC to both admins
     subject: `${fromWhere}`,
