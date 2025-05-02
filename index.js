@@ -167,23 +167,53 @@ app.post("/api/send-email-any", (req, res) => {
   });
 });
 app.get("/api/test-smtp", async (req, res) => {
+  // Log all SMTP ENV variables to verify
+  console.log("===== 🔐 SMTP ENV CONFIG =====");
+  console.log("MAIL_HOST:", process.env.MAIL_HOST);
+  console.log("MAIL_PORT:", process.env.MAIL_PORT);
+  console.log("MAIL_USER:", process.env.MAIL_USER);
+  console.log("MAIL_PASS:", process.env.MAIL_PASS);
+  console.log("================================");
+
+  // Create transporter using .env directly
+  const testTransporter = nodemailer.createTransport({
+    host: process.env.MAIL_HOST,
+    port: process.env.MAIL_PORT,
+    secure: false, // set true if using port 465 and SSL
+    auth: {
+      user: process.env.MAIL_USER,
+      pass: process.env.MAIL_PASS,
+    },
+  });
+
   try {
-    const info = await transporter.sendMail({
-      from: "SIB Infotech <contact@sibinfotech.com>",
+    const info = await testTransporter.sendMail({
+      from: `"SIB Infotech" <${process.env.MAIL_USER}>`,
       to: "sibinfotech101@gmail.com",
       subject: "🔥 SMTP Test Email - SIB Infotech",
       html: `
         <h2>SMTP is Working!</h2>
-        <p>This is a test email sent from the Node.js backend at ${new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })}.</p>
+        <p>This is a test email sent from the Node.js backend at ${new Date().toLocaleString(
+          "en-IN",
+          { timeZone: "Asia/Kolkata" }
+        )}.</p>
         <p>If you're seeing this, SMTP is correctly configured 🚀</p>
       `,
     });
 
     console.log("✅ SMTP test email sent:", info.messageId);
-    res.status(200).json({ success: true, message: "SMTP test email sent successfully!" });
+    res.status(200).json({
+      success: true,
+      message: "SMTP test email sent successfully!",
+      messageId: info.messageId,
+    });
   } catch (err) {
     console.error("❌ SMTP test failed:", err.message);
-    res.status(500).json({ success: false, message: "SMTP test failed", error: err.message });
+    res.status(500).json({
+      success: false,
+      message: "SMTP test failed",
+      error: err.message,
+    });
   }
 });
 
