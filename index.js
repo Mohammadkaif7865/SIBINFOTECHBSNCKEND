@@ -47,7 +47,7 @@ app.post("/api/send-email", (req, res) => {
   const { name, company, website, email, phone, fromWhere, service, message } =
     req.body;
   const mailOptions = {
-    from: "SIB Infotech <contact@sibinfotech.com>",
+    from: "SIB Infotech <website@sibinfotech.com>",
     to: "radhey@sibinfotech.com",
     // to: "mohammadkaif051197@gmail.com",
     subject: `Enquiry Landing Page - ${fromWhere} `,
@@ -113,7 +113,7 @@ app.post("/api/send-email", (req, res) => {
 app.post("/api/send-ppc-results", validateToken, (req, res) => {
   const { html, fromWhere, userEmail, userName } = req.body;
   const mailOptions = {
-    from: "SIB Infotech <contact@sibinfotech.com>",
+    from: "SIB Infotech <website@sibinfotech.com>",
     to: userEmail, // 👈 sent to the user
     cc: ["contact@sibinfotech.com", "radhey@sibinfotech.com"], // 👈 CC to both admins
     subject: `${fromWhere}`,
@@ -127,7 +127,6 @@ app.post("/api/send-ppc-results", validateToken, (req, res) => {
 
   transporter.sendMail(mailOptions, (error, info) => {
     if (error) {
-      console.log("YYYYYYYYYYYYYYYYYYYYYYttt", process.env.MAIL_USER);
       return res
         .status(500)
         .json({ success: false, message: "Failed to send email" });
@@ -142,10 +141,9 @@ app.post("/api/send-email-any", (req, res) => {
   const { html, fromWhere } = req.body;
 
   const mailOptions = {
-    from: "SIB Infotech <76d293001@smtp-brevo.com>",
-    to : "sibinfotech101@gmail.com",
-    // to: "contact@sibinfotech.com",
-    // cc: "radhey@sibinfotech.com",
+    from: "SIB Infotech <website@sibinfotech.com>",
+    to: "contact@sibinfotech.com",
+    cc: "radhey@sibinfotech.com",
     subject: `${fromWhere}`,
     html: html,
   };
@@ -173,7 +171,7 @@ app.post("/api/send-email-application", (req, res) => {
   let pdfBuffer = fs.readFileSync(resumePath);
 
   const mailOptions = {
-    from: "SIB Infotech <contact@sibinfotech.com>",
+    from: "SIB Infotech <website@sibinfotech.com>",
     attachments: [
       {
         filename: resumeName, // Filename of the attachment
