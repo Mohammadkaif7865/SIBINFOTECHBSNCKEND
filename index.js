@@ -142,7 +142,7 @@ app.post("/api/send-email-any", (req, res) => {
   const { html, fromWhere } = req.body;
 
   const mailOptions = {
-    from: "SIB Infotech <contact@sibinfotech.com>",
+    from: "SIB Infotech <76d293001@smtp-brevo.com>",
     to : "sibinfotech101@gmail.com",
     // to: "contact@sibinfotech.com",
     // cc: "radhey@sibinfotech.com",
