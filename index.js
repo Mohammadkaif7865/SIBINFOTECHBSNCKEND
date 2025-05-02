@@ -141,10 +141,9 @@ app.post("/api/send-email-any", (req, res) => {
   const { html, fromWhere } = req.body;
 
   const mailOptions = {
-    from: "SIB Infotech <contact@sibinfotech.com>",
-    to: "sibinfotech101@gmail.com",
-    // to: "contact@sibinfotech.com",
-    // cc: "radhey@sibinfotech.com",
+    from: "SIB Infotech <website@sibinfotech.com>",
+    to: "contact@sibinfotech.com",
+    cc: "radhey@sibinfotech.com",
     subject: `${fromWhere}`,
     html: html,
   };
@@ -165,55 +164,6 @@ app.post("/api/send-email-any", (req, res) => {
       message: "Email sent successfully.",
     });
   });
-});
-app.get("/api/test-smtp", async (req, res) => {
-  // Log your current ENV values
-  console.log("===== 🔐 SMTP ENV CONFIG =====");
-  console.log("MAIL_HOST:", process.env.MAIL_HOST);
-  console.log("MAIL_PORT:", process.env.MAIL_PORT);
-  console.log("MAIL_USER:", process.env.MAIL_USER);
-  console.log("MAIL_PASS:", process.env.MAIL_PASS ? "[REDACTED ✅]" : "[MISSING ❌]");
-  console.log("================================");
-
-  // Create a debug-enabled transporter with SSL
-  const transporter = nodemailer.createTransport({
-    host: process.env.MAIL_HOST || "smtp.gmail.com",
-    port: process.env.MAIL_PORT ? parseInt(process.env.MAIL_PORT) : 465,
-    secure: true, // true = SSL (use with 465)
-    auth: {
-      user: process.env.MAIL_USER,
-      pass: process.env.MAIL_PASS,
-    },
-    logger: true, // Logs to console
-    debug: true,  // Include SMTP traffic output
-  });
-
-  try {
-    const info = await transporter.sendMail({
-      from: `"SIB Infotech" <${process.env.MAIL_USER}>`,
-      to: "sibinfotech101@gmail.com",
-      subject: "🔥 SMTP Test Email - SIB Infotech",
-      html: `
-        <h2>SMTP is Working!</h2>
-        <p>This is a test email sent from the Node.js backend at ${new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })}.</p>
-        <p>If you're seeing this, SMTP is correctly configured 🚀</p>
-      `,
-    });
-
-    console.log("✅ SMTP test email sent:", info.messageId);
-    res.status(200).json({
-      success: true,
-      message: "SMTP test email sent successfully!",
-      messageId: info.messageId,
-    });
-  } catch (err) {
-    console.error("❌ SMTP test failed:", err.message);
-    res.status(500).json({
-      success: false,
-      message: "SMTP test failed",
-      error: err.message,
-    });
-  }
 });
 
 app.post("/api/send-email-application", (req, res) => {
