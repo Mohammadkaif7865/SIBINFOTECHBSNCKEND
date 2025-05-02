@@ -167,36 +167,35 @@ app.post("/api/send-email-any", (req, res) => {
   });
 });
 app.get("/api/test-smtp", async (req, res) => {
-  // Log all SMTP ENV variables to verify
+  // Log your current ENV values
   console.log("===== 🔐 SMTP ENV CONFIG =====");
   console.log("MAIL_HOST:", process.env.MAIL_HOST);
   console.log("MAIL_PORT:", process.env.MAIL_PORT);
   console.log("MAIL_USER:", process.env.MAIL_USER);
-  console.log("MAIL_PASS:", process.env.MAIL_PASS);
+  console.log("MAIL_PASS:", process.env.MAIL_PASS ? "[REDACTED ✅]" : "[MISSING ❌]");
   console.log("================================");
 
-  // Create transporter using .env directly
-  const testTransporter = nodemailer.createTransport({
-    host: process.env.MAIL_HOST,
-    port: process.env.MAIL_PORT,
-    secure: false, // set true if using port 465 and SSL
+  // Create a debug-enabled transporter with SSL
+  const transporter = nodemailer.createTransport({
+    host: process.env.MAIL_HOST || "smtp.gmail.com",
+    port: process.env.MAIL_PORT ? parseInt(process.env.MAIL_PORT) : 465,
+    secure: true, // true = SSL (use with 465)
     auth: {
       user: process.env.MAIL_USER,
       pass: process.env.MAIL_PASS,
     },
+    logger: true, // Logs to console
+    debug: true,  // Include SMTP traffic output
   });
 
   try {
-    const info = await testTransporter.sendMail({
+    const info = await transporter.sendMail({
       from: `"SIB Infotech" <${process.env.MAIL_USER}>`,
       to: "sibinfotech101@gmail.com",
       subject: "🔥 SMTP Test Email - SIB Infotech",
       html: `
         <h2>SMTP is Working!</h2>
-        <p>This is a test email sent from the Node.js backend at ${new Date().toLocaleString(
-          "en-IN",
-          { timeZone: "Asia/Kolkata" }
-        )}.</p>
+        <p>This is a test email sent from the Node.js backend at ${new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })}.</p>
         <p>If you're seeing this, SMTP is correctly configured 🚀</p>
       `,
     });
