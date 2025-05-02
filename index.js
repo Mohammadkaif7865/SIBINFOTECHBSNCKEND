@@ -127,7 +127,7 @@ app.post("/api/send-ppc-results", validateToken, (req, res) => {
 
   transporter.sendMail(mailOptions, (error, info) => {
     if (error) {
-      console.log("YYYYYYYYYYYYYYYYYYYYYY", process.env.MAIL_USER);
+      console.log("YYYYYYYYYYYYYYYYYYYYYYttt", process.env.MAIL_USER);
       return res
         .status(500)
         .json({ success: false, message: "Failed to send email" });
