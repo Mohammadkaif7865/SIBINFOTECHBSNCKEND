@@ -15,7 +15,13 @@ moment().tz("Asia/Kolkata").format();
 require("dotenv").config();
 
 const app = express();
-app.use(cors());
+// app.use(cors());
+
+app.use(cors({
+  origin: '*', // Be more specific in production
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 
 // app.use(fileUpload());
 app.use(bodyParser.urlencoded({ extended: true }));
