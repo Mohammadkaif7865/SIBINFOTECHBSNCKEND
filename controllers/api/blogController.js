@@ -302,121 +302,211 @@ function formatDate(dateString) {
 }
 
 const blogEdit = (req, res) => {
-  let imagePath = ""
-  let previousImagePath = req.body.imageHidden
-  let bannerImagePath = ""
-  let previousBannerImagePath = req.body.banner_image_hidden
-
-  // If previousImagePath is not provided, fetch it from the database
-  if (!previousImagePath) {
-    const fetchSql = `SELECT image, banner_image FROM blog WHERE id = '${req.body.id}'`
-    connection.query(fetchSql, (err, result) => {
+  try {
+    // Get previous image paths first
+    const fetchSql = `SELECT image, banner_image FROM blog WHERE id = ?`;
+    connection.query(fetchSql, [req.body.id], (err, result) => {
       if (err) {
-        console.error("Error fetching previous image path: ", err)
-        return res.json({ error: true, message: "Something went wrong" })
+        console.error("Error fetching previous data:", err);
+        return res.json({ error: true, message: "Error fetching previous data" });
       }
 
-      if (result.length > 0) {
-        previousImagePath = result[0].image
-        previousBannerImagePath = result[0].banner_image
-        proceedWithUpdate()
-      } else {
-        return res.json({ error: true, message: "Blog post not found" })
-      }
-    })
-  } else {
-    proceedWithUpdate()
-  }
-
-  function proceedWithUpdate() {
-    // Handle main blog image
-    if (req.files && req.files.find(f => f.fieldname === 'image')) {
-      const imageFile = req.files.find(f => f.fieldname === 'image')
-      const customImageName = req.body.image_name
-      const fileExtension = path.extname(imageFile.originalname)
-      const newFileName = `${customImageName}${fileExtension}`
-      imagePath = imageFile.destination + newFileName
-
-      // Delete previous image if exists
-      if (previousImagePath && fs.existsSync(previousImagePath)) {
-        fs.unlinkSync(previousImagePath)
+      if (!result.length) {
+        return res.json({ error: true, message: "Blog not found" });
       }
 
-      fs.renameSync(imageFile.path, imagePath)
-    } else {
-      imagePath = previousImagePath
-    }
+      const previousImagePath = result[0].image;
+      const previousBannerImagePath = result[0].banner_image;
 
-    // Handle banner image
-    if (req.files && req.files.find(f => f.fieldname === 'banner_image')) {
-      const bannerFile = req.files.find(f => f.fieldname === 'banner_image')
-      const bannerFileName = `banner_${Date.now()}${path.extname(bannerFile.originalname)}`
-      bannerImagePath = bannerFile.destination + bannerFileName
-      
-      // Delete previous banner if exists
-      if (previousBannerImagePath && fs.existsSync(previousBannerImagePath)) {
-        fs.unlinkSync(previousBannerImagePath)
-      }
+      // Handle main image
+      let imagePath = previousImagePath;
+      if (req.files && req.files.find(f => f.fieldname === 'image')) {
+        const imageFile = req.files.find(f => f.fieldname === 'image');
+        const fileExtension = path.extname(imageFile.originalname);
+        const newFileName = `${req.body.image_name}${fileExtension}`;
+        imagePath = path.join('uploads/blog/', newFileName);
 
-      fs.renameSync(bannerFile.path, bannerImagePath)
-    } else {
-      bannerImagePath = previousBannerImagePath
-    }
-
-    // Parse sections and handle section media files
-    let sections = []
-    try {
-      sections = JSON.parse(req.body.sections)
-      sections = sections.map((section, index) => {
-        const mediaFile = req.files && req.files.find(f => f.fieldname === `section_media_${index}`)
-        if (mediaFile) {
-          const mediaFileName = `section_${req.body.id}_${index}_${Date.now()}${path.extname(mediaFile.originalname)}`
-          const mediaPath = mediaFile.destination + mediaFileName
-          fs.renameSync(mediaFile.path, mediaPath)
-          section.media = mediaPath
+        // Delete previous image if exists
+        if (previousImagePath && fs.existsSync(previousImagePath)) {
+          fs.unlinkSync(previousImagePath);
         }
-        return section
-      })
-    } catch (e) {
-      console.error("Error processing sections:", e)
-      sections = []
-    }
 
-    // Parse FAQs
-    let faqs = []
-    try {
-      faqs = JSON.parse(req.body.faqs)
-    } catch (e) {
-      console.error("Error processing FAQs:", e)
-      faqs = []
-    }
+        fs.renameSync(imageFile.path, imagePath);
+      }
 
-    const formData = {
-      category_id: req.body.category_id,
-      name: req.body.name,
-      slug: slugify(req.body.slug, {
-        lower: true,
-        remove: /[*+~.()'"!:@#%^&${}<>?/|]/g,
-      }),
-      image: imagePath,
-      image_name: req.body.image_name,
-      image_alt: req.body.image_alt,
-      description: req.body.description,
-      bdate: formatDate(req.body.bdate),
-      meta_title: req.body.meta_title,
-      meta_keywords: req.body.meta_keywords,
-      meta_description: req.body.meta_description,
-      publish: req.body.publish,
-      banner_background_color: req.body.banner_background_color,
-      banner_text_color: req.body.banner_text_color,
-      banner_title: req.body.banner_title,
-      banner_image: bannerImagePath,
-      updatedAt: dateFormat(Date.now(), "yyyy-mm-dd HH:MM:ss"),
-    }
+      // Handle banner image
+      let bannerImagePath = previousBannerImagePath;
+      if (req.files && req.files.find(f => f.fieldname === 'banner_image')) {
+        const bannerFile = req.files.find(f => f.fieldname === 'banner_image');
+        const bannerFileName = `banner_${Date.now()}${path.extname(bannerFile.originalname)}`;
+        bannerImagePath = path.join('uploads/blog/', bannerFileName);
 
-    // Continue with your existing transaction code...
+        // Delete previous banner if exists
+        if (previousBannerImagePath && fs.existsSync(previousBannerImagePath)) {
+          fs.unlinkSync(previousBannerImagePath);
+        }
+
+        fs.renameSync(bannerFile.path, bannerImagePath);
+      }
+
+      // Start transaction
+      connection.beginTransaction(err => {
+        if (err) {
+          console.error("Transaction error:", err);
+          return res.json({ error: true, message: "Transaction error" });
+        }
+
+        // Update main blog data
+        const blogData = {
+          category_id: req.body.category_id,
+          name: req.body.name,
+          slug: slugify(req.body.slug, {
+            lower: true,
+            remove: /[*+~.()'"!:@#%^&${}<>?/|]/g,
+          }),
+          image: imagePath,
+          image_name: req.body.image_name,
+          image_alt: req.body.image_alt,
+          description: req.body.description,
+          bdate: formatDate(req.body.bdate),
+          meta_title: req.body.meta_title,
+          meta_keywords: req.body.meta_keywords,
+          meta_description: req.body.meta_description,
+          publish: req.body.publish,
+          banner_background_color: req.body.banner_background_color,
+          banner_text_color: req.body.banner_text_color,
+          banner_title: req.body.banner_title,
+          banner_image: bannerImagePath,
+          updatedAt: dateFormat(new Date(), "yyyy-mm-dd HH:MM:ss")
+        };
+
+        connection.query('UPDATE blog SET ? WHERE id = ?', [blogData, req.body.id], (err) => {
+          if (err) {
+            return connection.rollback(() => {
+              console.error("Blog update error:", err);
+              res.json({ error: true, message: "Error updating blog" });
+            });
+          }
+
+          // Delete existing sections and FAQs
+          connection.query('DELETE FROM blog_sections WHERE blog_id = ?', [req.body.id], (err) => {
+            if (err) {
+              return connection.rollback(() => {
+                console.error("Error deleting sections:", err);
+                res.json({ error: true, message: "Error deleting sections" });
+              });
+            }
+
+            connection.query('DELETE FROM blog_faqs WHERE blog_id = ?', [req.body.id], (err) => {
+              if (err) {
+                return connection.rollback(() => {
+                  console.error("Error deleting FAQs:", err);
+                  res.json({ error: true, message: "Error deleting FAQs" });
+                });
+              }
+
+              // Insert sections
+              let sections = [];
+              try {
+                sections = JSON.parse(req.body.sections || '[]');
+              } catch (e) {
+                console.error("Error parsing sections:", e);
+                return connection.rollback(() => {
+                  res.json({ error: true, message: "Invalid sections data" });
+                });
+              }
+
+              const sectionPromises = sections.map((section, index) => {
+                return new Promise((resolve, reject) => {
+                  let mediaPath = section.media;
+                  
+                  // Handle section media file if exists
+                  const sectionFile = req.files && req.files.find(f => f.fieldname === `section_media_${index}`);
+                  if (sectionFile) {
+                    const mediaFileName = `section_${req.body.id}_${index}_${Date.now()}${path.extname(sectionFile.originalname)}`;
+                    mediaPath = path.join('uploads/blog/', mediaFileName);
+                    fs.renameSync(sectionFile.path, mediaPath);
+                  }
+
+                  const sectionData = {
+                    blog_id: req.body.id,
+                    title: section.title,
+                    media: mediaPath,
+                    media_type: section.media_type,
+                    description: section.description,
+                    grey_quote: section.grey_quote,
+                    order: section.order,
+                    publish: section.publish,
+                    createdAt: dateFormat(new Date(), "yyyy-mm-dd HH:MM:ss"),
+                    updatedAt: dateFormat(new Date(), "yyyy-mm-dd HH:MM:ss")
+                  };
+
+                  connection.query('INSERT INTO blog_sections SET ?', sectionData, (err) => {
+                    if (err) reject(err);
+                    else resolve();
+                  });
+                });
+              });
+
+              // Insert FAQs
+              let faqs = [];
+              try {
+                faqs = JSON.parse(req.body.faqs || '[]');
+              } catch (e) {
+                console.error("Error parsing FAQs:", e);
+                return connection.rollback(() => {
+                  res.json({ error: true, message: "Invalid FAQs data" });
+                });
+              }
+
+              const faqPromises = faqs.map(faq => {
+                return new Promise((resolve, reject) => {
+                  const faqData = {
+                    blog_id: req.body.id,
+                    question: faq.question,
+                    answer: faq.answer,
+                    order: faq.order,
+                    publish: faq.publish,
+                    createdAt: dateFormat(new Date(), "yyyy-mm-dd HH:MM:ss"),
+                    updatedAt: dateFormat(new Date(), "yyyy-mm-dd HH:MM:ss")
+                  };
+
+                  connection.query('INSERT INTO blog_faqs SET ?', faqData, (err) => {
+                    if (err) reject(err);
+                    else resolve();
+                  });
+                });
+              });
+
+              // Execute all promises
+              Promise.all([...sectionPromises, ...faqPromises])
+                .then(() => {
+                  connection.commit(err => {
+                    if (err) {
+                      return connection.rollback(() => {
+                        console.error("Commit error:", err);
+                        res.json({ error: true, message: "Error committing transaction" });
+                      });
+                    }
+                    res.json({ error: false, message: "Blog updated successfully" });
+                  });
+                })
+                .catch(err => {
+                  connection.rollback(() => {
+                    console.error("Error in promises:", err);
+                    res.json({ error: true, message: "Error updating blog details" });
+                  });
+                });
+            });
+          });
+        });
+      });
+    });
+  } catch (error) {
+    console.error("Unexpected error:", error);
+    res.json({ error: true, message: "An unexpected error occurred" });
   }
-}
+};
 
 
 var blogDeleteData = (req, res) => {
