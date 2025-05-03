@@ -33,48 +33,244 @@ var blogsData = (req, res) => {
   });
 };
 
+// Updated blogAdd controller function
 var blogAdd = (req, res) => {
-  let imagePath = "";
-  // if (req.files.image != undefined) {
-  //   imagePath = req.files.image[0].destination + req.files.image[0].filename;
-  // }
-  if (req.files.image != undefined) {
-    console.log(req.body);
-    let customImageName = req.body.image_name;
-    let fileExtension = path.extname(req.files.image[0].originalname);
-    let newFileName = `${customImageName}${fileExtension}`;
-    imagePath = req.files.image[0].destination + newFileName;
-    fs.renameSync(req.files.image[0].path, imagePath);
-  }
-  let formData = {
-    category_id: req.body.category_id,
-    name: req.body.name,
-    slug: slugify(req.body.name, {
-      lower: true,
-      remove: /[*+~.()'"!:@#%^&${}<>?/|]/g,
-    }),
-    image: imagePath,
-    image_name: req.body.image_name, //need to add in table first
-    image_alt: req.body.image_alt, //need to add in table first
-    description: req.body.description,
-    bdate: req.body.bdate,
-    meta_title: req.body.meta_title,
-    meta_keywords: req.body.meta_keywords,
-    meta_description: req.body.meta_description,
-    publish: req.body.publish,
-    createdAt: dateFormat(Date.now(), "yyyy-mm-dd HH:MM:ss"),
-    updatedAt: dateFormat(Date.now(), "yyyy-mm-dd HH:MM:ss"),
-  };
-
-  let sql = "INSERT INTO blog SET ?";
-  connection.query(sql, formData, (err) => {
-    if (!err) {
-      res.json({ error: false, message: "Successfully created" });
-    } else {
-      res.json({ error: true, message: "Something went wrong" });
+    let imagePath = "";
+    // Main blog image handling
+    if (req.files.image != undefined) {
+        let customImageName = req.body.image_name;
+        let fileExtension = path.extname(req.files.image[0].originalname);
+        let newFileName = `${customImageName}${fileExtension}`;
+        imagePath = req.files.image[0].destination + newFileName;
+        fs.renameSync(req.files.image[0].path, imagePath);
     }
-  });
+
+    // Banner image handling
+    let bannerImagePath = "";
+    if (req.files.banner_image != undefined) {
+        let bannerFileName = `banner_${Date.now()}${path.extname(req.files.banner_image[0].originalname)}`;
+        bannerImagePath = req.files.banner_image[0].destination + bannerFileName;
+        fs.renameSync(req.files.banner_image[0].path, bannerImagePath);
+    }
+
+    // Main blog data
+    let formData = {
+        category_id: req.body.category_id,
+        name: req.body.name,
+        slug: slugify(req.body.name, {
+        lower: true,
+        remove: /[*+~.()'"!:@#%^&${}<>?/|]/g,
+        }),
+        image: imagePath,
+        image_name: req.body.image_name,
+        image_alt: req.body.image_alt,
+        description: req.body.description,
+        bdate: req.body.bdate,
+        meta_title: req.body.meta_title,
+        meta_keywords: req.body.meta_keywords,
+        meta_description: req.body.meta_description,
+        publish: req.body.publish,
+        // Banner fields
+        banner_background_color: req.body.banner_background_color || null,
+        banner_text_color: req.body.banner_text_color || null,
+        banner_title: req.body.banner_title || null,
+        banner_image: bannerImagePath || null,
+        createdAt: dateFormat(Date.now(), "yyyy-mm-dd HH:MM:ss"),
+        updatedAt: dateFormat(Date.now(), "yyyy-mm-dd HH:MM:ss"),
+    };
+
+    // Start a database transaction
+    connection.beginTransaction(function(err) {
+        if (err) {
+        return res.json({ error: true, message: "Transaction error" });
+        }
+
+        // Insert blog post
+        let blogSql = "INSERT INTO blog SET ?";
+        connection.query(blogSql, formData, (err, blogResult) => {
+        if (err) {
+            return connection.rollback(function() {
+            res.json({ error: true, message: "Failed to create blog post" });
+            });
+        }
+
+        const blogId = blogResult.insertId;
+        
+        // Parse sections and FAQs from JSON
+        let sections = [];
+        let faqs = [];
+        
+        try {
+            if (req.body.sections) {
+            sections = JSON.parse(req.body.sections);
+            }
+            
+            if (req.body.faqs) {
+            faqs = JSON.parse(req.body.faqs);
+            }
+        } catch (e) {
+            return connection.rollback(function() {
+            res.json({ error: true, message: "Error parsing sections or FAQs" });
+            });
+        }
+        
+        // Process and insert sections
+        if (sections.length > 0) {
+            const sectionPromises = sections.map((section, index) => {
+            return new Promise((resolve, reject) => {
+                // Process section media if available
+                let mediaPath = null;
+                if (req.files[`section_media_${index}`] !== undefined) {
+                const mediaFile = req.files[`section_media_${index}`][0];
+                const mediaFileName = `section_${blogId}_${index}_${Date.now()}${path.extname(mediaFile.originalname)}`;
+                mediaPath = mediaFile.destination + mediaFileName;
+                fs.renameSync(mediaFile.path, mediaPath);
+                }
+                
+                const sectionData = {
+                blog_id: blogId,
+                title: section.title,
+                media: mediaPath,
+                media_type: section.media_type,
+                description: section.description,
+                grey_quote: section.grey_quote,
+                order: section.order,
+                publish: section.publish,
+                createdAt: dateFormat(Date.now(), "yyyy-mm-dd HH:MM:ss"),
+                updatedAt: dateFormat(Date.now(), "yyyy-mm-dd HH:MM:ss")
+                };
+                
+                const sectionSql = "INSERT INTO blog_sections SET ?";
+                connection.query(sectionSql, sectionData, (err, result) => {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(result);
+                }
+                });
+            });
+            });
+            
+            // Execute all section insert promises
+            Promise.all(sectionPromises)
+            .then(() => {
+                // Process and insert FAQs after sections are done
+                if (faqs.length > 0) {
+                const faqPromises = faqs.map(faq => {
+                    return new Promise((resolve, reject) => {
+                    const faqData = {
+                        blog_id: blogId,
+                        question: faq.question,
+                        answer: faq.answer,
+                        order: faq.order,
+                        publish: faq.publish,
+                        createdAt: dateFormat(Date.now(), "yyyy-mm-dd HH:MM:ss"),
+                        updatedAt: dateFormat(Date.now(), "yyyy-mm-dd HH:MM:ss")
+                    };
+                    
+                    const faqSql = "INSERT INTO blog_faqs SET ?";
+                    connection.query(faqSql, faqData, (err, result) => {
+                        if (err) {
+                        reject(err);
+                        } else {
+                        resolve(result);
+                        }
+                    });
+                    });
+                });
+                
+                // Execute all FAQ insert promises
+                Promise.all(faqPromises)
+                    .then(() => {
+                    // Commit transaction if all operations successful
+                    connection.commit(function(err) {
+                        if (err) {
+                        return connection.rollback(function() {
+                            res.json({ error: true, message: "Failed to commit transaction" });
+                        });
+                        }
+                        res.json({ error: false, message: "Successfully created blog with sections and FAQs" });
+                    });
+                    })
+                    .catch(err => {
+                    connection.rollback(function() {
+                        res.json({ error: true, message: "Failed to insert FAQs" });
+                    });
+                    });
+                } else {
+                // If no FAQs, commit after sections are inserted
+                connection.commit(function(err) {
+                    if (err) {
+                    return connection.rollback(function() {
+                        res.json({ error: true, message: "Failed to commit transaction" });
+                    });
+                    }
+                    res.json({ error: false, message: "Successfully created blog with sections" });
+                });
+                }
+            })
+            .catch(err => {
+                connection.rollback(function() {
+                res.json({ error: true, message: "Failed to insert sections" });
+                });
+            });
+        } else if (faqs.length > 0) {
+            // If there are no sections but there are FAQs
+            const faqPromises = faqs.map(faq => {
+            return new Promise((resolve, reject) => {
+                const faqData = {
+                blog_id: blogId,
+                question: faq.question,
+                answer: faq.answer,
+                order: faq.order,
+                publish: faq.publish,
+                createdAt: dateFormat(Date.now(), "yyyy-mm-dd HH:MM:ss"),
+                updatedAt: dateFormat(Date.now(), "yyyy-mm-dd HH:MM:ss")
+                };
+                
+                const faqSql = "INSERT INTO blog_faqs SET ?";
+                connection.query(faqSql, faqData, (err, result) => {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(result);
+                }
+                });
+            });
+            });
+            
+            // Execute all FAQ insert promises
+            Promise.all(faqPromises)
+            .then(() => {
+                connection.commit(function(err) {
+                if (err) {
+                    return connection.rollback(function() {
+                    res.json({ error: true, message: "Failed to commit transaction" });
+                    });
+                }
+                res.json({ error: false, message: "Successfully created blog with FAQs" });
+                });
+            })
+            .catch(err => {
+                connection.rollback(function() {
+                res.json({ error: true, message: "Failed to insert FAQs" });
+                });
+            });
+        } else {
+            // If no sections or FAQs, just commit the blog post
+            connection.commit(function(err) {
+            if (err) {
+                return connection.rollback(function() {
+                res.json({ error: true, message: "Failed to commit transaction" });
+                });
+            }
+            res.json({ error: false, message: "Successfully created" });
+            });
+        }
+        });
+    });
 };
+
 
 var blogEditData = (req, res) => {
   let condition = "";
@@ -106,100 +302,319 @@ function formatDate(dateString) {
 }
 
 var blogEdit = (req, res) => {
-  let imagePath = "";
-  let previousImagePath = req.body.imageHidden;
-
-  // If previousImagePath is not provided, fetch it from the database
-  if (!previousImagePath) {
-    let fetchSql = `SELECT image FROM blog WHERE id = '${req.body.id}'`;
-    connection.query(fetchSql, function (err, result) {
-      if (err) {
-        console.error("Error fetching previous image path: ", err);
-        return res.json({ error: true, message: "Something went wrong" });
-      }
-
-      if (result.length > 0) {
-        previousImagePath = result[0].image;
-        proceedWithUpdate();
-      } else {
-        return res.json({ error: true, message: "Blog post not found" });
-      }
-    });
-  } else {
-    proceedWithUpdate();
-  }
-
-  function proceedWithUpdate() {
-    if (req.files.image != undefined) {
-      let customImageName = req.body.image_name;
-      let fileExtension = path.extname(req.files.image[0].originalname);
-      let newFileName = `${customImageName}${fileExtension}`;
-      imagePath = req.files.image[0].destination + newFileName;
-
-      // Delete the previous image
-      if (previousImagePath && fs.existsSync(previousImagePath)) {
-        fs.unlinkSync(previousImagePath);
-      }
-
-      fs.renameSync(req.files.image[0].path, imagePath);
+    let imagePath = ""
+    let previousImagePath = req.body.imageHidden
+    let bannerImagePath = ""
+    let previousBannerImagePath // Declare previousBannerImagePath
+  
+    // If previousImagePath is not provided, fetch it from the database
+    if (!previousImagePath) {
+      const fetchSql = `SELECT image, banner_image FROM blog WHERE id = '${req.body.id}'`
+      connection.query(fetchSql, (err, result) => {
+        if (err) {
+          console.error("Error fetching previous image path: ", err)
+          return res.json({ error: true, message: "Something went wrong" })
+        }
+  
+        if (result.length > 0) {
+          previousImagePath = result[0].image
+          previousBannerImagePath = result[0].banner_image
+          proceedWithUpdate()
+        } else {
+          return res.json({ error: true, message: "Blog post not found" })
+        }
+      })
     } else {
-      // Rename the previous image with the new name
-      if (previousImagePath && fs.existsSync(previousImagePath)) {
-        let customImageName = req.body.image_name;
-        let fileExtension = path.extname(previousImagePath);
-        let newFileName = `${customImageName}${fileExtension}`;
-        let newImagePath = path.join(
-          path.dirname(previousImagePath),
-          newFileName
-        );
-
-        console.log("Previous Image Path: ", previousImagePath);
-        console.log("New Image Path: ", newImagePath);
-
-        try {
-          fs.renameSync(previousImagePath, newImagePath);
-          imagePath = newImagePath;
-          console.log("Image renamed successfully");
-        } catch (err) {
-          console.error("Error renaming the previous image: ", err);
-          imagePath = previousImagePath; // Fallback to the original path if renaming fails
+      proceedWithUpdate()
+    }
+  
+    function proceedWithUpdate() {
+      // Handle main blog image
+      if (req.files.image != undefined) {
+        const customImageName = req.body.image_name
+        const fileExtension = path.extname(req.files.image[0].originalname)
+        const newFileName = `${customImageName}${fileExtension}`
+        imagePath = req.files.image[0].destination + newFileName
+  
+        // Delete the previous image
+        if (previousImagePath && fs.existsSync(previousImagePath)) {
+          fs.unlinkSync(previousImagePath)
+        }
+  
+        fs.renameSync(req.files.image[0].path, imagePath)
+      } else {
+        // Rename the previous image with the new name
+        if (previousImagePath && fs.existsSync(previousImagePath)) {
+          const customImageName = req.body.image_name
+          const fileExtension = path.extname(previousImagePath)
+          const newFileName = `${customImageName}${fileExtension}`
+          const newImagePath = path.join(path.dirname(previousImagePath), newFileName)
+  
+          console.log("Previous Image Path: ", previousImagePath)
+          console.log("New Image Path: ", newImagePath)
+  
+          try {
+            fs.renameSync(previousImagePath, newImagePath)
+            imagePath = newImagePath
+            console.log("Image renamed successfully")
+          } catch (err) {
+            console.error("Error renaming the previous image: ", err)
+            imagePath = previousImagePath // Fallback to the original path if renaming fails
+          }
+        } else {
+          imagePath = previousImagePath
+        }
+      }
+  
+      // Handle banner image
+      if (req.files.banner_image != undefined) {
+        const bannerFileName = `banner_${Date.now()}${path.extname(req.files.banner_image[0].originalname)}`
+        bannerImagePath = req.files.banner_image[0].destination + bannerFileName
+        fs.renameSync(req.files.banner_image[0].path, bannerImagePath)
+  
+        // Delete previous banner image if it exists
+        if (previousBannerImagePath && fs.existsSync(previousBannerImagePath)) {
+          fs.unlinkSync(previousBannerImagePath)
         }
       } else {
-        imagePath = previousImagePath;
+        bannerImagePath = req.body.banner_image || null
       }
+  
+      const formData = {
+        category_id: req.body.category_id,
+        name: req.body.name,
+        slug: slugify(req.body.slug, {
+          lower: true,
+          remove: /[*+~.()'"!:@#%^&${}<>?/|]/g,
+        }),
+        image: imagePath,
+        image_name: req.body.image_name,
+        image_alt: req.body.image_alt,
+        description: req.body.description,
+        bdate: formatDate(req.body.bdate),
+        meta_title: req.body.meta_title,
+        meta_keywords: req.body.meta_keywords,
+        meta_description: req.body.meta_description,
+        publish: req.body.publish,
+        // Banner fields
+        banner_background_color: req.body.banner_background_color || null,
+        banner_text_color: req.body.banner_text_color || null,
+        banner_title: req.body.banner_title || null,
+        banner_image: bannerImagePath,
+        updatedAt: dateFormat(Date.now(), "yyyy-mm-dd HH:MM:ss"),
+      }
+  
+      // Start a database transaction
+      connection.beginTransaction((err) => {
+        if (err) {
+          return res.json({ error: true, message: "Transaction error" })
+        }
+  
+        // Update blog post
+        const sql = `UPDATE blog SET ? WHERE id = '${req.body.id}'`
+  
+        connection.query(sql, formData, (err) => {
+          if (err) {
+            return connection.rollback(() => {
+              console.log("This is the error ", err)
+              res.json({ error: true, message: "Something went wrong" })
+            })
+          }
+  
+          // Parse sections and FAQs from JSON
+          let sections = []
+          let faqs = []
+  
+          try {
+            if (req.body.sections) {
+              sections = JSON.parse(req.body.sections)
+            }
+  
+            if (req.body.faqs) {
+              faqs = JSON.parse(req.body.faqs)
+            }
+          } catch (e) {
+            return connection.rollback(() => {
+              res.json({ error: true, message: "Error parsing sections or FAQs" })
+            })
+          }
+  
+          // Delete existing sections and FAQs
+          const deleteSectionsSql = `DELETE FROM blog_sections WHERE blog_id = '${req.body.id}'`
+          connection.query(deleteSectionsSql, (err) => {
+            if (err) {
+              return connection.rollback(() => {
+                res.json({ error: true, message: "Failed to delete existing sections" })
+              })
+            }
+  
+            const deleteFaqsSql = `DELETE FROM blog_faqs WHERE blog_id = '${req.body.id}'`
+            connection.query(deleteFaqsSql, (err) => {
+              if (err) {
+                return connection.rollback(() => {
+                  res.json({ error: true, message: "Failed to delete existing FAQs" })
+                })
+              }
+  
+              // Process and insert sections
+              if (sections.length > 0) {
+                const sectionPromises = sections.map((section, index) => {
+                  return new Promise((resolve, reject) => {
+                    // Process section media if available
+                    let mediaPath = section.media
+                    if (req.files[`section_media_${index}`] !== undefined) {
+                      const mediaFile = req.files[`section_media_${index}`][0]
+                      const mediaFileName = `section_${req.body.id}_${index}_${Date.now()}${path.extname(mediaFile.originalname)}`
+                      mediaPath = mediaFile.destination + mediaFileName
+                      fs.renameSync(mediaFile.path, mediaPath)
+                    }
+  
+                    const sectionData = {
+                      blog_id: req.body.id,
+                      title: section.title,
+                      media: mediaPath,
+                      media_type: section.media_type,
+                      description: section.description,
+                      grey_quote: section.grey_quote,
+                      order: section.order,
+                      publish: section.publish,
+                      createdAt: dateFormat(Date.now(), "yyyy-mm-dd HH:MM:ss"),
+                      updatedAt: dateFormat(Date.now(), "yyyy-mm-dd HH:MM:ss"),
+                    }
+  
+                    const sectionSql = "INSERT INTO blog_sections SET ?"
+                    connection.query(sectionSql, sectionData, (err, result) => {
+                      if (err) {
+                        reject(err)
+                      } else {
+                        resolve(result)
+                      }
+                    })
+                  })
+                })
+  
+                // Execute all section insert promises
+                Promise.all(sectionPromises)
+                  .then(() => {
+                    // Process and insert FAQs after sections are done
+                    if (faqs.length > 0) {
+                      const faqPromises = faqs.map((faq) => {
+                        return new Promise((resolve, reject) => {
+                          const faqData = {
+                            blog_id: req.body.id,
+                            question: faq.question,
+                            answer: faq.answer,
+                            order: faq.order,
+                            publish: faq.publish,
+                            createdAt: dateFormat(Date.now(), "yyyy-mm-dd HH:MM:ss"),
+                            updatedAt: dateFormat(Date.now(), "yyyy-mm-dd HH:MM:ss"),
+                          }
+  
+                          const faqSql = "INSERT INTO blog_faqs SET ?"
+                          connection.query(faqSql, faqData, (err, result) => {
+                            if (err) {
+                              reject(err)
+                            } else {
+                              resolve(result)
+                            }
+                          })
+                        })
+                      })
+  
+                      // Execute all FAQ insert promises
+                      Promise.all(faqPromises)
+                        .then(() => {
+                          // Commit transaction if all operations successful
+                          connection.commit((err) => {
+                            if (err) {
+                              return connection.rollback(() => {
+                                res.json({ error: true, message: "Failed to commit transaction" })
+                              })
+                            }
+                            res.json({ error: false, message: "Successfully updated blog with sections and FAQs" })
+                          })
+                        })
+                        .catch((err) => {
+                          connection.rollback(() => {
+                            res.json({ error: true, message: "Failed to insert FAQs" })
+                          })
+                        })
+                    } else {
+                      // If no FAQs, commit after sections are inserted
+                      connection.commit((err) => {
+                        if (err) {
+                          return connection.rollback(() => {
+                            res.json({ error: true, message: "Failed to commit transaction" })
+                          })
+                        }
+                        res.json({ error: false, message: "Successfully updated blog with sections" })
+                      })
+                    }
+                  })
+                  .catch((err) => {
+                    connection.rollback(() => {
+                      res.json({ error: true, message: "Failed to insert sections" })
+                    })
+                  })
+              } else if (faqs.length > 0) {
+                // If there are no sections but there are FAQs
+                const faqPromises = faqs.map((faq) => {
+                  return new Promise((resolve, reject) => {
+                    const faqData = {
+                      blog_id: req.body.id,
+                      question: faq.question,
+                      answer: faq.answer,
+                      order: faq.order,
+                      publish: faq.publish,
+                      createdAt: dateFormat(Date.now(), "yyyy-mm-dd HH:MM:ss"),
+                      updatedAt: dateFormat(Date.now(), "yyyy-mm-dd HH:MM:ss"),
+                    }
+  
+                    const faqSql = "INSERT INTO blog_faqs SET ?"
+                    connection.query(faqSql, faqData, (err, result) => {
+                      if (err) {
+                        reject(err)
+                      } else {
+                        resolve(result)
+                      }
+                    })
+                  })
+                })
+  
+                // Execute all FAQ insert promises
+                Promise.all(faqPromises)
+                  .then(() => {
+                    connection.commit((err) => {
+                      if (err) {
+                        return connection.rollback(() => {
+                          res.json({ error: true, message: "Failed to commit transaction" })
+                        })
+                      }
+                      res.json({ error: false, message: "Successfully updated blog with FAQs" })
+                    })
+                  })
+                  .catch((err) => {
+                    connection.rollback(() => {
+                      res.json({ error: true, message: "Failed to insert FAQs" })
+                    })
+                  })
+              } else {
+                // If no sections or FAQs, just commit the blog post update
+                connection.commit((err) => {
+                  if (err) {
+                    return connection.rollback(() => {
+                      res.json({ error: true, message: "Failed to commit transaction" })
+                    })
+                  }
+                  res.json({ error: false, message: "Successfully updated" })
+                })
+              }
+            })
+          })
+        })
+      })
     }
-
-    let formData = {
-      category_id: req.body.category_id,
-      name: req.body.name,
-      slug: slugify(req.body.slug, {
-        lower: true,
-        remove: /[*+~.()'"!:@#%^&${}<>?/|]/g,
-      }),
-      image: imagePath,
-      image_name: req.body.image_name, // need to add in table first
-      image_alt: req.body.image_alt, // need to add in table first
-      description: req.body.description,
-      bdate: formatDate(req.body.bdate), // Format the date here
-      meta_title: req.body.meta_title,
-      meta_keywords: req.body.meta_keywords,
-      meta_description: req.body.meta_description,
-      publish: req.body.publish,
-      updatedAt: dateFormat(Date.now(), "yyyy-mm-dd HH:MM:ss"),
-    };
-
-    let sql = `UPDATE blog SET ? WHERE id = '${req.body.id}'`;
-
-    connection.query(sql, formData, function (err) {
-      if (!err) {
-        res.json({ error: false, message: "Successfully updated" });
-      } else {
-        console.log("This is the error ", err);
-        res.json({ error: true, message: "Something went wrong" });
-      }
-    });
   }
-};
 
 var blogDeleteData = (req, res) => {
   let sql = `DELETE FROM blog WHERE id = '${req.body.id}'`;
