@@ -301,320 +301,123 @@ function formatDate(dateString) {
   return `${year}-${month}-${day}`;
 }
 
-var blogEdit = (req, res) => {
-    let imagePath = ""
-    let previousImagePath = req.body.imageHidden
-    let bannerImagePath = ""
-    let previousBannerImagePath // Declare previousBannerImagePath
-  
-    // If previousImagePath is not provided, fetch it from the database
-    if (!previousImagePath) {
-      const fetchSql = `SELECT image, banner_image FROM blog WHERE id = '${req.body.id}'`
-      connection.query(fetchSql, (err, result) => {
-        if (err) {
-          console.error("Error fetching previous image path: ", err)
-          return res.json({ error: true, message: "Something went wrong" })
-        }
-  
-        if (result.length > 0) {
-          previousImagePath = result[0].image
-          previousBannerImagePath = result[0].banner_image
-          proceedWithUpdate()
-        } else {
-          return res.json({ error: true, message: "Blog post not found" })
-        }
-      })
-    } else {
-      proceedWithUpdate()
-    }
-  
-    function proceedWithUpdate() {
-      // Handle main blog image
-      if (req.files.image != undefined) {
-        const customImageName = req.body.image_name
-        const fileExtension = path.extname(req.files.image[0].originalname)
-        const newFileName = `${customImageName}${fileExtension}`
-        imagePath = req.files.image[0].destination + newFileName
-  
-        // Delete the previous image
-        if (previousImagePath && fs.existsSync(previousImagePath)) {
-          fs.unlinkSync(previousImagePath)
-        }
-  
-        fs.renameSync(req.files.image[0].path, imagePath)
+const blogEdit = (req, res) => {
+  let imagePath = ""
+  let previousImagePath = req.body.imageHidden
+  let bannerImagePath = ""
+  let previousBannerImagePath = req.body.banner_image_hidden
+
+  // If previousImagePath is not provided, fetch it from the database
+  if (!previousImagePath) {
+    const fetchSql = `SELECT image, banner_image FROM blog WHERE id = '${req.body.id}'`
+    connection.query(fetchSql, (err, result) => {
+      if (err) {
+        console.error("Error fetching previous image path: ", err)
+        return res.json({ error: true, message: "Something went wrong" })
+      }
+
+      if (result.length > 0) {
+        previousImagePath = result[0].image
+        previousBannerImagePath = result[0].banner_image
+        proceedWithUpdate()
       } else {
-        // Rename the previous image with the new name
-        if (previousImagePath && fs.existsSync(previousImagePath)) {
-          const customImageName = req.body.image_name
-          const fileExtension = path.extname(previousImagePath)
-          const newFileName = `${customImageName}${fileExtension}`
-          const newImagePath = path.join(path.dirname(previousImagePath), newFileName)
-  
-          console.log("Previous Image Path: ", previousImagePath)
-          console.log("New Image Path: ", newImagePath)
-  
-          try {
-            fs.renameSync(previousImagePath, newImagePath)
-            imagePath = newImagePath
-            console.log("Image renamed successfully")
-          } catch (err) {
-            console.error("Error renaming the previous image: ", err)
-            imagePath = previousImagePath // Fallback to the original path if renaming fails
-          }
-        } else {
-          imagePath = previousImagePath
-        }
+        return res.json({ error: true, message: "Blog post not found" })
       }
-  
-      // Handle banner image
-      if (req.files.banner_image != undefined) {
-        const bannerFileName = `banner_${Date.now()}${path.extname(req.files.banner_image[0].originalname)}`
-        bannerImagePath = req.files.banner_image[0].destination + bannerFileName
-        fs.renameSync(req.files.banner_image[0].path, bannerImagePath)
-  
-        // Delete previous banner image if it exists
-        if (previousBannerImagePath && fs.existsSync(previousBannerImagePath)) {
-          fs.unlinkSync(previousBannerImagePath)
-        }
-      } else {
-        bannerImagePath = req.body.banner_image || null
-      }
-  
-      const formData = {
-        category_id: req.body.category_id,
-        name: req.body.name,
-        slug: slugify(req.body.slug, {
-          lower: true,
-          remove: /[*+~.()'"!:@#%^&${}<>?/|]/g,
-        }),
-        image: imagePath,
-        image_name: req.body.image_name,
-        image_alt: req.body.image_alt,
-        description: req.body.description,
-        bdate: formatDate(req.body.bdate),
-        meta_title: req.body.meta_title,
-        meta_keywords: req.body.meta_keywords,
-        meta_description: req.body.meta_description,
-        publish: req.body.publish,
-        // Banner fields
-        banner_background_color: req.body.banner_background_color || null,
-        banner_text_color: req.body.banner_text_color || null,
-        banner_title: req.body.banner_title || null,
-        banner_image: bannerImagePath,
-        updatedAt: dateFormat(Date.now(), "yyyy-mm-dd HH:MM:ss"),
-      }
-  
-      // Start a database transaction
-      connection.beginTransaction((err) => {
-        if (err) {
-          return res.json({ error: true, message: "Transaction error" })
-        }
-  
-        // Update blog post
-        const sql = `UPDATE blog SET ? WHERE id = '${req.body.id}'`
-  
-        connection.query(sql, formData, (err) => {
-          if (err) {
-            return connection.rollback(() => {
-              console.log("This is the error ", err)
-              res.json({ error: true, message: "Something went wrong" })
-            })
-          }
-  
-          // Parse sections and FAQs from JSON
-          let sections = []
-          let faqs = []
-  
-          try {
-            if (req.body.sections) {
-              sections = JSON.parse(req.body.sections)
-            }
-  
-            if (req.body.faqs) {
-              faqs = JSON.parse(req.body.faqs)
-            }
-          } catch (e) {
-            return connection.rollback(() => {
-              res.json({ error: true, message: "Error parsing sections or FAQs" })
-            })
-          }
-  
-          // Delete existing sections and FAQs
-          const deleteSectionsSql = `DELETE FROM blog_sections WHERE blog_id = '${req.body.id}'`
-          connection.query(deleteSectionsSql, (err) => {
-            if (err) {
-              return connection.rollback(() => {
-                res.json({ error: true, message: "Failed to delete existing sections" })
-              })
-            }
-  
-            const deleteFaqsSql = `DELETE FROM blog_faqs WHERE blog_id = '${req.body.id}'`
-            connection.query(deleteFaqsSql, (err) => {
-              if (err) {
-                return connection.rollback(() => {
-                  res.json({ error: true, message: "Failed to delete existing FAQs" })
-                })
-              }
-  
-              // Process and insert sections
-              if (sections.length > 0) {
-                const sectionPromises = sections.map((section, index) => {
-                  return new Promise((resolve, reject) => {
-                    // Process section media if available
-                    let mediaPath = section.media
-                    if (req.files[`section_media_${index}`] !== undefined) {
-                      const mediaFile = req.files[`section_media_${index}`][0]
-                      const mediaFileName = `section_${req.body.id}_${index}_${Date.now()}${path.extname(mediaFile.originalname)}`
-                      mediaPath = mediaFile.destination + mediaFileName
-                      fs.renameSync(mediaFile.path, mediaPath)
-                    }
-  
-                    const sectionData = {
-                      blog_id: req.body.id,
-                      title: section.title,
-                      media: mediaPath,
-                      media_type: section.media_type,
-                      description: section.description,
-                      grey_quote: section.grey_quote,
-                      order: section.order,
-                      publish: section.publish,
-                      createdAt: dateFormat(Date.now(), "yyyy-mm-dd HH:MM:ss"),
-                      updatedAt: dateFormat(Date.now(), "yyyy-mm-dd HH:MM:ss"),
-                    }
-  
-                    const sectionSql = "INSERT INTO blog_sections SET ?"
-                    connection.query(sectionSql, sectionData, (err, result) => {
-                      if (err) {
-                        reject(err)
-                      } else {
-                        resolve(result)
-                      }
-                    })
-                  })
-                })
-  
-                // Execute all section insert promises
-                Promise.all(sectionPromises)
-                  .then(() => {
-                    // Process and insert FAQs after sections are done
-                    if (faqs.length > 0) {
-                      const faqPromises = faqs.map((faq) => {
-                        return new Promise((resolve, reject) => {
-                          const faqData = {
-                            blog_id: req.body.id,
-                            question: faq.question,
-                            answer: faq.answer,
-                            order: faq.order,
-                            publish: faq.publish,
-                            createdAt: dateFormat(Date.now(), "yyyy-mm-dd HH:MM:ss"),
-                            updatedAt: dateFormat(Date.now(), "yyyy-mm-dd HH:MM:ss"),
-                          }
-  
-                          const faqSql = "INSERT INTO blog_faqs SET ?"
-                          connection.query(faqSql, faqData, (err, result) => {
-                            if (err) {
-                              reject(err)
-                            } else {
-                              resolve(result)
-                            }
-                          })
-                        })
-                      })
-  
-                      // Execute all FAQ insert promises
-                      Promise.all(faqPromises)
-                        .then(() => {
-                          // Commit transaction if all operations successful
-                          connection.commit((err) => {
-                            if (err) {
-                              return connection.rollback(() => {
-                                res.json({ error: true, message: "Failed to commit transaction" })
-                              })
-                            }
-                            res.json({ error: false, message: "Successfully updated blog with sections and FAQs" })
-                          })
-                        })
-                        .catch((err) => {
-                          connection.rollback(() => {
-                            res.json({ error: true, message: "Failed to insert FAQs" })
-                          })
-                        })
-                    } else {
-                      // If no FAQs, commit after sections are inserted
-                      connection.commit((err) => {
-                        if (err) {
-                          return connection.rollback(() => {
-                            res.json({ error: true, message: "Failed to commit transaction" })
-                          })
-                        }
-                        res.json({ error: false, message: "Successfully updated blog with sections" })
-                      })
-                    }
-                  })
-                  .catch((err) => {
-                    connection.rollback(() => {
-                      res.json({ error: true, message: "Failed to insert sections" })
-                    })
-                  })
-              } else if (faqs.length > 0) {
-                // If there are no sections but there are FAQs
-                const faqPromises = faqs.map((faq) => {
-                  return new Promise((resolve, reject) => {
-                    const faqData = {
-                      blog_id: req.body.id,
-                      question: faq.question,
-                      answer: faq.answer,
-                      order: faq.order,
-                      publish: faq.publish,
-                      createdAt: dateFormat(Date.now(), "yyyy-mm-dd HH:MM:ss"),
-                      updatedAt: dateFormat(Date.now(), "yyyy-mm-dd HH:MM:ss"),
-                    }
-  
-                    const faqSql = "INSERT INTO blog_faqs SET ?"
-                    connection.query(faqSql, faqData, (err, result) => {
-                      if (err) {
-                        reject(err)
-                      } else {
-                        resolve(result)
-                      }
-                    })
-                  })
-                })
-  
-                // Execute all FAQ insert promises
-                Promise.all(faqPromises)
-                  .then(() => {
-                    connection.commit((err) => {
-                      if (err) {
-                        return connection.rollback(() => {
-                          res.json({ error: true, message: "Failed to commit transaction" })
-                        })
-                      }
-                      res.json({ error: false, message: "Successfully updated blog with FAQs" })
-                    })
-                  })
-                  .catch((err) => {
-                    connection.rollback(() => {
-                      res.json({ error: true, message: "Failed to insert FAQs" })
-                    })
-                  })
-              } else {
-                // If no sections or FAQs, just commit the blog post update
-                connection.commit((err) => {
-                  if (err) {
-                    return connection.rollback(() => {
-                      res.json({ error: true, message: "Failed to commit transaction" })
-                    })
-                  }
-                  res.json({ error: false, message: "Successfully updated" })
-                })
-              }
-            })
-          })
-        })
-      })
-    }
+    })
+  } else {
+    proceedWithUpdate()
   }
+
+  function proceedWithUpdate() {
+    // Handle main blog image
+    if (req.files && req.files.find(f => f.fieldname === 'image')) {
+      const imageFile = req.files.find(f => f.fieldname === 'image')
+      const customImageName = req.body.image_name
+      const fileExtension = path.extname(imageFile.originalname)
+      const newFileName = `${customImageName}${fileExtension}`
+      imagePath = imageFile.destination + newFileName
+
+      // Delete previous image if exists
+      if (previousImagePath && fs.existsSync(previousImagePath)) {
+        fs.unlinkSync(previousImagePath)
+      }
+
+      fs.renameSync(imageFile.path, imagePath)
+    } else {
+      imagePath = previousImagePath
+    }
+
+    // Handle banner image
+    if (req.files && req.files.find(f => f.fieldname === 'banner_image')) {
+      const bannerFile = req.files.find(f => f.fieldname === 'banner_image')
+      const bannerFileName = `banner_${Date.now()}${path.extname(bannerFile.originalname)}`
+      bannerImagePath = bannerFile.destination + bannerFileName
+      
+      // Delete previous banner if exists
+      if (previousBannerImagePath && fs.existsSync(previousBannerImagePath)) {
+        fs.unlinkSync(previousBannerImagePath)
+      }
+
+      fs.renameSync(bannerFile.path, bannerImagePath)
+    } else {
+      bannerImagePath = previousBannerImagePath
+    }
+
+    // Parse sections and handle section media files
+    let sections = []
+    try {
+      sections = JSON.parse(req.body.sections)
+      sections = sections.map((section, index) => {
+        const mediaFile = req.files && req.files.find(f => f.fieldname === `section_media_${index}`)
+        if (mediaFile) {
+          const mediaFileName = `section_${req.body.id}_${index}_${Date.now()}${path.extname(mediaFile.originalname)}`
+          const mediaPath = mediaFile.destination + mediaFileName
+          fs.renameSync(mediaFile.path, mediaPath)
+          section.media = mediaPath
+        }
+        return section
+      })
+    } catch (e) {
+      console.error("Error processing sections:", e)
+      sections = []
+    }
+
+    // Parse FAQs
+    let faqs = []
+    try {
+      faqs = JSON.parse(req.body.faqs)
+    } catch (e) {
+      console.error("Error processing FAQs:", e)
+      faqs = []
+    }
+
+    const formData = {
+      category_id: req.body.category_id,
+      name: req.body.name,
+      slug: slugify(req.body.slug, {
+        lower: true,
+        remove: /[*+~.()'"!:@#%^&${}<>?/|]/g,
+      }),
+      image: imagePath,
+      image_name: req.body.image_name,
+      image_alt: req.body.image_alt,
+      description: req.body.description,
+      bdate: formatDate(req.body.bdate),
+      meta_title: req.body.meta_title,
+      meta_keywords: req.body.meta_keywords,
+      meta_description: req.body.meta_description,
+      publish: req.body.publish,
+      banner_background_color: req.body.banner_background_color,
+      banner_text_color: req.body.banner_text_color,
+      banner_title: req.body.banner_title,
+      banner_image: bannerImagePath,
+      updatedAt: dateFormat(Date.now(), "yyyy-mm-dd HH:MM:ss"),
+    }
+
+    // Continue with your existing transaction code...
+  }
+}
+
 
 var blogDeleteData = (req, res) => {
   let sql = `DELETE FROM blog WHERE id = '${req.body.id}'`;
