@@ -276,87 +276,51 @@ var blogEditData = (req, res) => {
   let condition = "";
 
   if (req.query.slug != undefined) {
-    condition += ` AND slug = "${req.params.id}"`;
+    condition += ` AND b.slug = "${req.params.id}"`;
   } else {
-    condition += ` AND id = "${req.params.id}"`;
+    condition += ` AND b.id = "${req.params.id}"`;
   }
 
-  let sql = `SELECT b.*, 
-             bs.id as section_id, bs.title as section_title, bs.media, bs.media_type, 
-             bs.description as section_description, bs.grey_quote, bs.order as section_order, 
-             bs.publish as section_publish,
-             bf.id as faq_id, bf.question, bf.answer, bf.order as faq_order, 
-             bf.publish as faq_publish
-             FROM blog b 
-             LEFT JOIN blog_sections bs ON b.id = bs.blog_id
-             LEFT JOIN blog_faqs bf ON b.id = bf.blog_id
-             WHERE 1 ${condition}
-             ORDER BY bs.order, bf.order`;
-
-  connection.query(sql, function (err, results) {
+  // First, get the main blog data
+  let blogSql = `SELECT * FROM blog b WHERE 1 ${condition}`;
+  
+  connection.query(blogSql, function (err, blog) {
     if (err) {
-      console.error("Error fetching blog data:", err);
+      console.error("Error fetching blog:", err);
       return res.json({ error: true, message: "Error fetching blog data" });
     }
 
-    if (results.length > 0) {
-      // Initialize the blog object with the first row
-      const blog = [{
-        ...results[0],
-        id: results[0].id,
-        category_id: results[0].category_id,
-        name: results[0].name,
-        slug: results[0].slug,
-        image: results[0].image,
-        description: results[0].description,
-        meta_title: results[0].meta_title,
-        meta_keywords: results[0].meta_keywords,
-        meta_description: results[0].meta_description,
-        bdate: results[0].bdate,
-        publish: results[0].publish,
-        image_name: results[0].image_name,
-        image_alt: results[0].image_alt,
-        banner_background_color: results[0].banner_background_color,
-        banner_text_color: results[0].banner_text_color,
-        banner_title: results[0].banner_title,
-        banner_image: results[0].banner_image
-      }];
-
-      // Process sections
-      const blog_sections = results
-        .filter(row => row.section_id)
-        .map(row => ({
-          id: row.section_id,
-          title: row.section_title,
-          media: row.media,
-          media_type: row.media_type,
-          description: row.section_description,
-          grey_quote: row.grey_quote,
-          order: row.section_order,
-          publish: row.section_publish
-        }));
-
-      // Process FAQs
-      const blog_faqs = results
-        .filter(row => row.faq_id)
-        .map(row => ({
-          id: row.faq_id,
-          question: row.question,
-          answer: row.answer,
-          order: row.faq_order,
-          publish: row.faq_publish
-        }));
-
-      res.json({
-        blog: blog,
-        blog_sections: blog_sections,
-        blog_faqs: blog_faqs
-      });
-    } else {
-      res.json({ message: "No blog found" });
+    if (blog.length === 0) {
+      return res.json({ message: "No blog found" });
     }
+
+    // Get sections for this blog
+    const sectionsSql = `SELECT * FROM blog_sections WHERE blog_id = ${blog[0].id} ORDER BY \`order\``;
+    connection.query(sectionsSql, (sectionsErr, sections) => {
+      if (sectionsErr) {
+        console.error("Error fetching sections:", sectionsErr);
+        return res.json({ error: true, message: "Error fetching sections" });
+      }
+
+      // Get FAQs for this blog
+      const faqsSql = `SELECT * FROM blog_faqs WHERE blog_id = ${blog[0].id} ORDER BY \`order\``;
+      connection.query(faqsSql, (faqsErr, faqs) => {
+        if (faqsErr) {
+          console.error("Error fetching FAQs:", faqsErr);
+          return res.json({ error: true, message: "Error fetching FAQs" });
+        }
+
+        // Return all data
+        res.json({
+          blog: blog,
+          blog_sections: sections || [],
+          blog_faqs: faqs || []
+        });
+      });
+    });
   });
 };
+
 
 // Function to format date to YYYY-MM-DD
 function formatDate(dateString) {
