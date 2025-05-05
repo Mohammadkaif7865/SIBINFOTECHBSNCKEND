@@ -148,8 +148,8 @@ app.post("/api/send-email-any", (req, res) => {
 
   const mailOptions = {
     from: "SIB Infotech <website@sibinfotech.com>",
-    // to: "contact@sibinfotech.com",
-    to: "sibinfotech101@gmail.com",
+    to: "contact@sibinfotech.com",
+    // to: "sibinfotech101@gmail.com",
     cc: "radhey@sibinfotech.com",
     subject: `${fromWhere}`,
     html: html,
