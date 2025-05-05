@@ -32,7 +32,7 @@ app.use(express.json());
 // app.use(express.urlencoded({ extended: true }))
 const transporter = nodemailer.createTransport({
   host: process.env.MAIL_HOST, // Your SMTP host
-  port: 587, // Your SMTP port
+  port: 2525, // Your SMTP port
   secure: false, // Whether your SMTP server uses SSL
   auth: {
     user: process.env.MAIL_USER, // SMTP username
