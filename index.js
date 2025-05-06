@@ -32,7 +32,7 @@ app.use(express.json());
 // app.use(express.urlencoded({ extended: true }))
 const transporter = nodemailer.createTransport({
   host: process.env.MAIL_HOST, // Your SMTP host
-  port: 587, // Your SMTP port
+  port: 2525, // Your SMTP port
   secure: false, // Whether your SMTP server uses SSL
   auth: {
     user: process.env.MAIL_USER, // SMTP username
@@ -121,7 +121,7 @@ app.post("/api/send-ppc-results", validateToken, (req, res) => {
   const mailOptions = {
     from: "SIB Infotech <website@sibinfotech.com>",
     to: userEmail, // 👈 sent to the user
-    cc: ["contact@sibinfotech.com", "radhey@sibinfotech.com"], // 👈 CC to both admins
+    // cc: ["contact@sibinfotech.com", "radhey@sibinfotech.com"], // 👈 CC to both admins
     subject: `${fromWhere}`,
     html: `
       <p>Hi ${userName || "there"},</p>
@@ -149,6 +149,7 @@ app.post("/api/send-email-any", (req, res) => {
   const mailOptions = {
     from: "SIB Infotech <website@sibinfotech.com>",
     to: "contact@sibinfotech.com",
+    // to: "sibinfotech101@gmail.com",
     cc: "radhey@sibinfotech.com",
     subject: `${fromWhere}`,
     html: html,
@@ -164,7 +165,7 @@ app.post("/api/send-email-any", (req, res) => {
         error: error.message,
       });
     }
-
+    console.log("TTTTTTTTTTTTTTTTTTTTTTTTT");
     res.status(200).json({
       success: true,
       message: "Email sent successfully.",
