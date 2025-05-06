@@ -9,7 +9,8 @@ const nodemailer = require("nodemailer");
 const fs = require("fs");
 const { validateToken } = require("./middlewares/token");
 var bodyParser = require("body-parser");
-
+const axios = require("axios");
+const cheerio = require("cheerio");
 moment().tz("Asia/Kolkata").format();
 
 require("dotenv").config();
@@ -143,6 +144,63 @@ app.post("/api/send-ppc-results", validateToken, (req, res) => {
       .json({ success: true, message: "Email sent successfully" });
   });
 });
+app.post("/api/fetch-html", async (req, res) => {
+  const { url } = req.body;
+
+  if (!url || typeof url !== "string") {
+    return res.status(400).json({ error: "Missing or invalid 'url' in request body" });
+  }
+
+  try {
+    const response = await axios.get(url, {
+      headers: {
+        "User-Agent": "KeywordDensityBot/1.0"
+      }
+    });
+
+    const $ = cheerio.load(response.data);
+    const content = $("body").html() || "";
+
+    return res.status(200).json({ content });
+  } catch (err) {
+    console.error("❌ Error fetching HTML:", err.message);
+    return res.status(500).json({ error: "Could not fetch HTML" });
+  }
+});
+app.post("/api/robots-sitemap-check", async (req, res) => {
+  const { url } = req.body;
+
+  if (!url || typeof url !== "string") {
+    return res.status(400).json({ error: "Missing or invalid 'url' in request body" });
+  }
+
+  const robotsUrl = `${url}/robots.txt`;
+  const sitemapUrl = `${url}/sitemap.xml`;
+
+  try {
+    const [robotsRes, sitemapRes] = await Promise.all([
+      fetch(robotsUrl),
+      fetch(sitemapUrl),
+    ]);
+
+    const robotsExists = robotsRes.ok;
+    const sitemapExists = sitemapRes.ok;
+
+    return res.status(200).json({
+      robotsExists,
+      sitemapExists,
+      robotsUrl,
+      sitemapUrl,
+    });
+  } catch (err) {
+    console.error("Error fetching robots/sitemap:", err.message);
+    return res.status(500).json({
+      error: "Failed to fetch robots/sitemap",
+      details: err.message,
+    });
+  }
+});
+
 app.post("/api/send-email-any", (req, res) => {
   const { html, fromWhere } = req.body;
 
