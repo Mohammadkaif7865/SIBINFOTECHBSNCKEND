@@ -33,35 +33,65 @@ var blogsData = (req, res) => {
   });
 };
 
-// Update the blogAdd function to properly handle all form data
+// Updated blogAdd function to properly handle file uploads
 var blogAdd = (req, res) => {
   try {
+    console.log("Files received:", req.files)
+
     let imagePath = ""
-    // Main blog image handling
-    if (req.files && req.files.image) {
-      const customImageName = req.body.image_name || `blog_${Date.now()}`
-      const fileExtension = path.extname(req.files.image[0].originalname)
-      const newFileName = `${customImageName}${fileExtension}`
-      imagePath = req.files.image[0].destination + newFileName
-      fs.renameSync(req.files.image[0].path, imagePath)
+    // Main blog image handling - fixed to match the edit function's approach
+    if (req.files && req.files.length > 0) {
+      const imageFile = req.files.find((f) => f.fieldname === "image")
+      if (imageFile) {
+        const customImageName = req.body.image_name || `blog_${Date.now()}`
+        const fileExtension = path.extname(imageFile.originalname)
+        const newFileName = `${customImageName}${fileExtension}`
+        imagePath = path.join("uploads/blog/", newFileName)
+
+        // Ensure directory exists
+        const dir = path.dirname(imagePath)
+        if (!fs.existsSync(dir)) {
+          fs.mkdirSync(dir, { recursive: true })
+        }
+
+        fs.renameSync(imageFile.path, imagePath)
+        console.log("Image saved to:", imagePath)
+      } else {
+        console.log("No image file found in request")
+      }
+    } else {
+      console.log("No files in request")
     }
 
     // Banner image handling
     let bannerImagePath = ""
-    if (req.files && req.files.banner_image) {
-      const bannerFileName = `banner_${Date.now()}${path.extname(req.files.banner_image[0].originalname)}`
-      bannerImagePath = req.files.banner_image[0].destination + bannerFileName
-      fs.renameSync(req.files.banner_image[0].path, bannerImagePath)
+    if (req.files && req.files.length > 0) {
+      const bannerFile = req.files.find((f) => f.fieldname === "banner_image")
+      if (bannerFile) {
+        const bannerFileName = `banner_${Date.now()}${path.extname(bannerFile.originalname)}`
+        bannerImagePath = path.join("uploads/blog/", bannerFileName)
+
+        // Ensure directory exists
+        const dir = path.dirname(bannerImagePath)
+        if (!fs.existsSync(dir)) {
+          fs.mkdirSync(dir, { recursive: true })
+        }
+
+        fs.renameSync(bannerFile.path, bannerImagePath)
+        console.log("Banner image saved to:", bannerImagePath)
+      }
     }
 
     // Main blog data
     const formData = {
       category_id: req.body.category_id,
       name: req.body.name,
-      slug: slugify(req.body.name, {
-        lower: true,
-        remove: /[*+~.()'"!:@#%^&${}<>?/|]/g,
-      }),
+      slug:
+        req.body.slug ||
+        slugify(req.body.name, {
+          lower: true,
+          remove: /[*+~.()'"!:@#%^&${}<>?/|]/g,
+        }),
       image: imagePath,
       image_name: req.body.image_name,
       image_alt: req.body.image_alt,
@@ -79,6 +109,8 @@ var blogAdd = (req, res) => {
       createdAt: dateFormat(Date.now(), "yyyy-mm-dd HH:MM:ss"),
       updatedAt: dateFormat(Date.now(), "yyyy-mm-dd HH:MM:ss"),
     }
+
+    console.log("Form data prepared:", formData)
 
     // Start a database transaction
     connection.beginTransaction((err) => {
@@ -98,6 +130,7 @@ var blogAdd = (req, res) => {
         }
 
         const blogId = blogResult.insertId
+        console.log("Blog inserted with ID:", blogId)
 
         // Parse sections and FAQs from JSON
         let sections = []
@@ -106,10 +139,12 @@ var blogAdd = (req, res) => {
         try {
           if (req.body.sections) {
             sections = JSON.parse(req.body.sections)
+            console.log("Parsed sections:", sections.length)
           }
 
           if (req.body.faqs) {
             faqs = JSON.parse(req.body.faqs)
+            console.log("Parsed FAQs:", faqs.length)
           }
         } catch (e) {
           console.error("Error parsing JSON:", e)
@@ -124,11 +159,21 @@ var blogAdd = (req, res) => {
             return new Promise((resolve, reject) => {
               // Process section media if available
               let mediaPath = null
-              if (req.files && req.files[`section_media_${index}`]) {
-                const mediaFile = req.files[`section_media_${index}`][0]
-                const mediaFileName = `section_${blogId}_${index}_${Date.now()}${path.extname(mediaFile.originalname)}`
-                mediaPath = mediaFile.destination + mediaFileName
-                fs.renameSync(mediaFile.path, mediaPath)
+              if (req.files && req.files.length > 0) {
+                const mediaFile = req.files.find((f) => f.fieldname === `section_media_${index}`)
+                if (mediaFile) {
+                  const mediaFileName = `section_${blogId}_${index}_${Date.now()}${path.extname(mediaFile.originalname)}`
+                  mediaPath = path.join("uploads/blog/", mediaFileName)
+
+                  // Ensure directory exists
+                  const dir = path.dirname(mediaPath)
+                  if (!fs.existsSync(dir)) {
+                    fs.mkdirSync(dir, { recursive: true })
+                  }
+
+                  fs.renameSync(mediaFile.path, mediaPath)
+                  console.log(`Section ${index} media saved to:`, mediaPath)
+                }
               }
 
               const sectionData = {
@@ -150,6 +195,7 @@ var blogAdd = (req, res) => {
                   console.error("Section insert error:", err)
                   reject(err)
                 } else {
+                  console.log(`Section ${index} inserted`)
                   resolve(result)
                 }
               })
@@ -161,7 +207,7 @@ var blogAdd = (req, res) => {
             .then(() => {
               // Process and insert FAQs after sections are done
               if (faqs.length > 0) {
-                const faqPromises = faqs.map((faq) => {
+                const faqPromises = faqs.map((faq, index) => {
                   return new Promise((resolve, reject) => {
                     const faqData = {
                       blog_id: blogId,
@@ -179,6 +225,7 @@ var blogAdd = (req, res) => {
                         console.error("FAQ insert error:", err)
                         reject(err)
                       } else {
+                        console.log(`FAQ ${index} inserted`)
                         resolve(result)
                       }
                     })
@@ -196,6 +243,7 @@ var blogAdd = (req, res) => {
                           res.json({ error: true, message: "Failed to commit transaction" })
                         })
                       }
+                      console.log("Transaction committed successfully")
                       res.json({ error: false, message: "Successfully created blog with sections and FAQs" })
                     })
                   })
@@ -214,6 +262,7 @@ var blogAdd = (req, res) => {
                       res.json({ error: true, message: "Failed to commit transaction" })
                     })
                   }
+                  console.log("Transaction committed successfully")
                   res.json({ error: false, message: "Successfully created blog with sections" })
                 })
               }
@@ -226,7 +275,7 @@ var blogAdd = (req, res) => {
             })
         } else if (faqs.length > 0) {
           // If there are no sections but there are FAQs
-          const faqPromises = faqs.map((faq) => {
+          const faqPromises = faqs.map((faq, index) => {
             return new Promise((resolve, reject) => {
               const faqData = {
                 blog_id: blogId,
@@ -244,6 +293,7 @@ var blogAdd = (req, res) => {
                   console.error("FAQ insert error:", err)
                   reject(err)
                 } else {
+                  console.log(`FAQ ${index} inserted`)
                   resolve(result)
                 }
               })
@@ -260,6 +310,7 @@ var blogAdd = (req, res) => {
                     res.json({ error: true, message: "Failed to commit transaction" })
                   })
                 }
+                console.log("Transaction committed successfully")
                 res.json({ error: false, message: "Successfully created blog with FAQs" })
               })
             })
@@ -278,6 +329,7 @@ var blogAdd = (req, res) => {
                 res.json({ error: true, message: "Failed to commit transaction" })
               })
             }
+            console.log("Transaction committed successfully")
             res.json({ error: false, message: "Successfully created blog" })
           })
         }
