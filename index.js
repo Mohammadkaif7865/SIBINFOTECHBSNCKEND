@@ -167,7 +167,7 @@ app.post("/api/fetch-html", async (req, res) => {
     return res.status(500).json({ error: "Could not fetch HTML" });
   }
 });
-app.post("/api/robots-sitemap-check", async (req, res) => {
+app.post("/api/robotsSitemapCheck", async (req, res) => {
   const { url } = req.body;
 
   if (!url || typeof url !== "string") {
