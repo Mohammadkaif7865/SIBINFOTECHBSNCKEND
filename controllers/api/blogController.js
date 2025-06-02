@@ -522,77 +522,79 @@ const blogEdit = (req, res) => {
               }
 
               // Insert sections
-              let sections = [];
-              try {
-                sections = JSON.parse(req.body.sections || '[]');
-              } catch (e) {
-                console.error("Error parsing sections:", e);
-                return connection.rollback(() => {
-                  res.json({ error: true, message: "Invalid sections data" });
-                });
-              }
+            let sections = [];
+            try {
+              sections = JSON.parse(req.body.sections || '[]');
+            } catch (e) {
+              console.error("Error parsing sections:", e);
+              return connection.rollback(() => {
+                res.json({ error: true, message: "Invalid sections data" });
+              });
+            }
 
-              const sectionPromises = sections.map((section, index) => {
-                return new Promise((resolve, reject) => {
-                  let mediaPath = null;
+            const sectionPromises = sections.map((section, index) => {
+              return new Promise((resolve, reject) => {
+                let mediaPath = null;
 
-                  const sectionFile =
-                    req.files && req.files.find((f) => f.fieldname === `section_media_${index}`);
+                const sectionFile =
+                  req.files && req.files.find((f) => f.fieldname === `section_media_${index}`);
 
-                  // If media type is image or video and file is uploaded
-                  if ((section.media_type === "image" || section.media_type === "video") && sectionFile) {
-                    const mediaFileName = `section_${req.body.id}_${index}_${Date.now()}${path.extname(
-                      sectionFile.originalname
-                    )}`;
-                    mediaPath = path.join("uploads/blog/", mediaFileName);
+                // 1. If media type is "image" or "video" and file is uploaded
+                if ((section.media_type === "image" || section.media_type === "video") && sectionFile) {
+                  const mediaFileName = `section_${req.body.id}_${index}_${Date.now()}${path.extname(
+                    sectionFile.originalname
+                  )}`;
+                  mediaPath = path.join("uploads/blog/", mediaFileName);
 
-                    // Ensure directory exists
-                    const dir = path.dirname(mediaPath);
-                    if (!fs.existsSync(dir)) {
-                      fs.mkdirSync(dir, { recursive: true });
-                    }
-
-                    fs.renameSync(sectionFile.path, mediaPath);
-                    console.log(`Section ${index} media saved to:`, mediaPath);
+                  // Ensure directory exists
+                  const dir = path.dirname(mediaPath);
+                  if (!fs.existsSync(dir)) {
+                    fs.mkdirSync(dir, { recursive: true });
                   }
 
-                  // If media type is youtube and section.media is a URL string
-                  if (section.media_type === "youtube" && typeof section.media === "string") {
-                    mediaPath = section.media;
+                  fs.renameSync(sectionFile.path, mediaPath);
+                  console.log(`Section ${index} media saved to:`, mediaPath);
+                }
+
+                // 2. If media type is "youtube", use the provided URL
+                if (section.media_type === "youtube" && typeof section.media === "string") {
+                  mediaPath = section.media;
+                }
+
+                // 3. If no new file is uploaded, but an existing media path is provided (image/video reuse)
+                if (
+                  (section.media_type === "image" || section.media_type === "video") &&
+                  !sectionFile &&
+                  typeof section.media === "string"
+                ) {
+                  mediaPath = section.media;
+                }
+
+                // 4. If media_type is "none", mediaPath should stay null
+
+                const sectionData = {
+                  blog_id: req.body.id,
+                  title: section.title,
+                  media: mediaPath,
+                  media_type: section.media_type,
+                  description: section.description,
+                  grey_quote: section.grey_quote,
+                  order: section.order,
+                  publish: section.publish,
+                  createdAt: dateFormat(new Date(), "yyyy-mm-dd HH:MM:ss"),
+                  updatedAt: dateFormat(new Date(), "yyyy-mm-dd HH:MM:ss"),
+                };
+
+                connection.query("INSERT INTO blog_sections SET ?", sectionData, (err) => {
+                  if (err) {
+                    console.error(`Error inserting section ${index}:`, err);
+                    reject(err);
+                  } else {
+                    resolve();
                   }
-
-                  // If no new file is uploaded and it's not YouTube, fallback to existing media if any
-                  if (
-                    (section.media_type === "image" || section.media_type === "video") &&
-                    !sectionFile &&
-                    typeof section.media === "string"
-                  ) {
-                    mediaPath = section.media; // reuse existing image/video path
-                  }
-
-                  const sectionData = {
-                    blog_id: req.body.id,
-                    title: section.title,
-                    media: mediaPath,
-                    media_type: section.media_type,
-                    description: section.description,
-                    grey_quote: section.grey_quote,
-                    order: section.order,
-                    publish: section.publish,
-                    createdAt: dateFormat(new Date(), "yyyy-mm-dd HH:MM:ss"),
-                    updatedAt: dateFormat(new Date(), "yyyy-mm-dd HH:MM:ss"),
-                  };
-
-                  connection.query("INSERT INTO blog_sections SET ?", sectionData, (err) => {
-                    if (err) {
-                      console.error(`Error inserting section ${index}:`, err);
-                      reject(err);
-                    } else {
-                      resolve();
-                    }
-                  });
                 });
               });
+            });
 
 
               // Insert FAQs
