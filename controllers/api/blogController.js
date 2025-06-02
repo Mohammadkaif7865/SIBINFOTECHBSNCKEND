@@ -161,32 +161,30 @@ var blogAdd = (req, res) => {
               let mediaPath = null;
 
               // For image or video, check if a file is uploaded for this section
-              if (req.files && req.files.length > 0) {
-                const mediaFile = req.files.find((f) => f.fieldname === `section_media_${index}`);
-                if (mediaFile && (section.media_type === "image" || section.media_type === "video")) {
-                  const mediaFileName = `section_${blogId}_${index}_${Date.now()}${path.extname(mediaFile.originalname)}`;
-                  mediaPath = path.join("uploads/blog/", mediaFileName);
+              const mediaFile = req.files?.find((f) => f.fieldname === `section_media_${index}`);
+              if (mediaFile && (section.media_type === "image" || section.media_type === "video")) {
+                const mediaFileName = `section_${blogId}_${index}_${Date.now()}${path.extname(mediaFile.originalname)}`;
+                mediaPath = path.join("uploads/blog/", mediaFileName);
 
-                  // Ensure directory exists
-                  const dir = path.dirname(mediaPath);
-                  if (!fs.existsSync(dir)) {
-                    fs.mkdirSync(dir, { recursive: true });
-                  }
-
-                  fs.renameSync(mediaFile.path, mediaPath);
-                  console.log(`Section ${index} media saved to:`, mediaPath);
+                // Ensure directory exists
+                const dir = path.dirname(mediaPath);
+                if (!fs.existsSync(dir)) {
+                  fs.mkdirSync(dir, { recursive: true });
                 }
+
+                fs.renameSync(mediaFile.path, mediaPath);
+                console.log(`Section ${index} media saved to:`, mediaPath);
               }
 
-              // For YouTube, media is a URL string, so use section.media directly
-              if (section.media_type === "youtube") {
+              // For YouTube, assign the YouTube URL directly
+              if (section.media_type === "youtube" && typeof section.media === "string") {
                 mediaPath = section.media;
               }
 
-              // If mediaPath is still null and media_type is image/video, use existing media path string if present
+              // If no new file is uploaded for image/video but an existing path is present
               if (
                 (section.media_type === "image" || section.media_type === "video") &&
-                !mediaPath &&
+                !mediaFile &&
                 typeof section.media === "string"
               ) {
                 mediaPath = section.media;
@@ -217,6 +215,7 @@ var blogAdd = (req, res) => {
               });
             });
           });
+
 
           // Execute all section insert promises
           Promise.all(sectionPromises)
