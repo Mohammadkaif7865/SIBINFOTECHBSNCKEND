@@ -536,17 +536,13 @@ const blogEdit = (req, res) => {
               return new Promise((resolve, reject) => {
                 let mediaPath = null;
 
-                const sectionFile =
-                  req.files && req.files.find((f) => f.fieldname === `section_media_${index}`);
+                const sectionFile = req.files && req.files.find(f => f.fieldname === `section_media_${index}`);
 
-                // 1. If media type is "image" or "video" and file is uploaded
+                // If new file is uploaded and media type is image or video
                 if ((section.media_type === "image" || section.media_type === "video") && sectionFile) {
-                  const mediaFileName = `section_${req.body.id}_${index}_${Date.now()}${path.extname(
-                    sectionFile.originalname
-                  )}`;
+                  const mediaFileName = `section_${req.body.id}_${index}_${Date.now()}${path.extname(sectionFile.originalname)}`;
                   mediaPath = path.join("uploads/blog/", mediaFileName);
 
-                  // Ensure directory exists
                   const dir = path.dirname(mediaPath);
                   if (!fs.existsSync(dir)) {
                     fs.mkdirSync(dir, { recursive: true });
@@ -556,21 +552,19 @@ const blogEdit = (req, res) => {
                   console.log(`Section ${index} media saved to:`, mediaPath);
                 }
 
-                // 2. If media type is "youtube", use the provided URL
-                if (section.media_type === "youtube" && typeof section.media === "string") {
+                // If media type is YouTube
+                else if (section.media_type === "youtube" && typeof section.media === "string") {
                   mediaPath = section.media;
                 }
 
-                // 3. If no new file is uploaded, but an existing media path is provided (image/video reuse)
-                if (
+                // If no new file uploaded but existing image/video path is available, keep it
+                else if (
                   (section.media_type === "image" || section.media_type === "video") &&
                   !sectionFile &&
                   typeof section.media === "string"
                 ) {
                   mediaPath = section.media;
                 }
-
-                // 4. If media_type is "none", mediaPath should stay null
 
                 const sectionData = {
                   blog_id: req.body.id,
