@@ -155,25 +155,41 @@ var blogAdd = (req, res) => {
 
         // Process and insert sections
         if (sections.length > 0) {
+          
           const sectionPromises = sections.map((section, index) => {
             return new Promise((resolve, reject) => {
-              // Process section media if available
-              let mediaPath = null
+              let mediaPath = null;
+
+              // For image or video, check if a file is uploaded for this section
               if (req.files && req.files.length > 0) {
-                const mediaFile = req.files.find((f) => f.fieldname === `section_media_${index}`)
-                if (mediaFile) {
-                  const mediaFileName = `section_${blogId}_${index}_${Date.now()}${path.extname(mediaFile.originalname)}`
-                  mediaPath = path.join("uploads/blog/", mediaFileName)
+                const mediaFile = req.files.find((f) => f.fieldname === `section_media_${index}`);
+                if (mediaFile && (section.media_type === "image" || section.media_type === "video")) {
+                  const mediaFileName = `section_${blogId}_${index}_${Date.now()}${path.extname(mediaFile.originalname)}`;
+                  mediaPath = path.join("uploads/blog/", mediaFileName);
 
                   // Ensure directory exists
-                  const dir = path.dirname(mediaPath)
+                  const dir = path.dirname(mediaPath);
                   if (!fs.existsSync(dir)) {
-                    fs.mkdirSync(dir, { recursive: true })
+                    fs.mkdirSync(dir, { recursive: true });
                   }
 
-                  fs.renameSync(mediaFile.path, mediaPath)
-                  console.log(`Section ${index} media saved to:`, mediaPath)
+                  fs.renameSync(mediaFile.path, mediaPath);
+                  console.log(`Section ${index} media saved to:`, mediaPath);
                 }
+              }
+
+              // For YouTube, media is a URL string, so use section.media directly
+              if (section.media_type === "youtube") {
+                mediaPath = section.media;
+              }
+
+              // If mediaPath is still null and media_type is image/video, use existing media path string if present
+              if (
+                (section.media_type === "image" || section.media_type === "video") &&
+                !mediaPath &&
+                typeof section.media === "string"
+              ) {
+                mediaPath = section.media;
               }
 
               const sectionData = {
@@ -187,20 +203,20 @@ var blogAdd = (req, res) => {
                 publish: section.publish,
                 createdAt: dateFormat(Date.now(), "yyyy-mm-dd HH:MM:ss"),
                 updatedAt: dateFormat(Date.now(), "yyyy-mm-dd HH:MM:ss"),
-              }
+              };
 
-              const sectionSql = "INSERT INTO blog_sections SET ?"
+              const sectionSql = "INSERT INTO blog_sections SET ?";
               connection.query(sectionSql, sectionData, (err, result) => {
                 if (err) {
-                  console.error("Section insert error:", err)
-                  reject(err)
+                  console.error("Section insert error:", err);
+                  reject(err);
                 } else {
-                  console.log(`Section ${index} inserted`)
-                  resolve(result)
+                  console.log(`Section ${index} inserted`);
+                  resolve(result);
                 }
-              })
-            })
-          })
+              });
+            });
+          });
 
           // Execute all section insert promises
           Promise.all(sectionPromises)
@@ -518,14 +534,40 @@ const blogEdit = (req, res) => {
 
               const sectionPromises = sections.map((section, index) => {
                 return new Promise((resolve, reject) => {
-                  let mediaPath = section.media;
-                  
-                  // Handle section media file if exists
-                  const sectionFile = req.files && req.files.find(f => f.fieldname === `section_media_${index}`);
-                  if (sectionFile) {
-                    const mediaFileName = `section_${req.body.id}_${index}_${Date.now()}${path.extname(sectionFile.originalname)}`;
-                    mediaPath = path.join('uploads/blog/', mediaFileName);
+                  let mediaPath = null;
+
+                  const sectionFile =
+                    req.files && req.files.find((f) => f.fieldname === `section_media_${index}`);
+
+                  // If media type is image or video and file is uploaded
+                  if ((section.media_type === "image" || section.media_type === "video") && sectionFile) {
+                    const mediaFileName = `section_${req.body.id}_${index}_${Date.now()}${path.extname(
+                      sectionFile.originalname
+                    )}`;
+                    mediaPath = path.join("uploads/blog/", mediaFileName);
+
+                    // Ensure directory exists
+                    const dir = path.dirname(mediaPath);
+                    if (!fs.existsSync(dir)) {
+                      fs.mkdirSync(dir, { recursive: true });
+                    }
+
                     fs.renameSync(sectionFile.path, mediaPath);
+                    console.log(`Section ${index} media saved to:`, mediaPath);
+                  }
+
+                  // If media type is youtube and section.media is a URL string
+                  if (section.media_type === "youtube" && typeof section.media === "string") {
+                    mediaPath = section.media;
+                  }
+
+                  // If no new file is uploaded and it's not YouTube, fallback to existing media if any
+                  if (
+                    (section.media_type === "image" || section.media_type === "video") &&
+                    !sectionFile &&
+                    typeof section.media === "string"
+                  ) {
+                    mediaPath = section.media; // reuse existing image/video path
                   }
 
                   const sectionData = {
@@ -538,15 +580,20 @@ const blogEdit = (req, res) => {
                     order: section.order,
                     publish: section.publish,
                     createdAt: dateFormat(new Date(), "yyyy-mm-dd HH:MM:ss"),
-                    updatedAt: dateFormat(new Date(), "yyyy-mm-dd HH:MM:ss")
+                    updatedAt: dateFormat(new Date(), "yyyy-mm-dd HH:MM:ss"),
                   };
 
-                  connection.query('INSERT INTO blog_sections SET ?', sectionData, (err) => {
-                    if (err) reject(err);
-                    else resolve();
+                  connection.query("INSERT INTO blog_sections SET ?", sectionData, (err) => {
+                    if (err) {
+                      console.error(`Error inserting section ${index}:`, err);
+                      reject(err);
+                    } else {
+                      resolve();
+                    }
                   });
                 });
               });
+
 
               // Insert FAQs
               let faqs = [];
