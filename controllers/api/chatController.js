@@ -1,5 +1,7 @@
 const async = require('async');
 var connection = require('../../config/connection');
+// inside any other file
+var contants = require('../../config/contants');
 var dateFormat = require('dateformat');
 const axios = require('axios');
 
@@ -65,7 +67,7 @@ const chatbotHandler = async (req, res) => {
 };
 
 const getOpenAIResponse = async (message) => {
-  const apiKey = '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';
+  const apiKey = contants.AI_API_KEY;
 
   if (!apiKey) return "OpenAI API key not configured.";
 
