@@ -4,6 +4,6 @@ var router = express.Router();
 
 var token = require('../../middlewares/token');
 
-router.post('/', chatController.handleChat); // Single chatbot endpoint
+router.post('/', chatController.chatbotHandler); // Single chatbot endpoint
 
 module.exports = router;
