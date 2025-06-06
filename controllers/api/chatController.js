@@ -67,6 +67,8 @@ const chatbotHandler = async (req, res) => {
 const getOpenAIResponse = async (message) => {
   const apiKey = process.env.AI_API_KEY;
 
+  console.log(apiKey);
+
   if (!apiKey) return "OpenAI API key not configured.";
 
   try {
