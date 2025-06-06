@@ -281,6 +281,9 @@ app.use("/api/blog", blogRoute);
 let serviceRoute = require(__dirname + "/routes/api/serviceRoute");
 app.use("/api/service", serviceRoute);
 
+let chatRoute = require(__dirname + "/routes/api/chatRoute");
+app.use("/api/chat", chatRoute);
+
 let homeRoute = require(__dirname + "/routes/api/homeRoute");
 app.use("/api/home", homeRoute);
 
