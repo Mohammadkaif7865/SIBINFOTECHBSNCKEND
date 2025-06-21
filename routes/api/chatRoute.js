@@ -14,4 +14,6 @@ router.post("/sentence-rewriter", chatController.sentenceRewriter);
 
 router.post("/serp-fetch", chatController.serpFetch);
 
+router.post('/title-meta-check', chatController.fetchTitleMeta);
+
 module.exports = router;

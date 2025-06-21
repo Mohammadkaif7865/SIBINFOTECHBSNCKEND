@@ -304,4 +304,83 @@ const serpFetch = async (req, res) => {
   }
 };
 
-module.exports = { chatbotHandler, fetchRedirectChain, paragraphRewriter, sentenceRewriter, serpFetch };
+const fetchTitleMeta = async (req, res) => {
+  const { url, keyword = '' } = req.body;
+
+  if (!url || !/^https?:\/\//i.test(url)) {
+    return res.status(400).json({ success: false, message: "Invalid URL." });
+  }
+
+  try {
+    const parsedUrl = new URL(url);
+    const client = parsedUrl.protocol === "https:" ? https : http;
+
+    client
+      .get(url, { timeout: 10000 }, (response) => {
+        let html = "";
+
+        response.on("data", (chunk) => {
+          html += chunk;
+        });
+
+        response.on("end", () => {
+          const { title, description } = extractMeta(html);
+          const score = scoreMeta(title, description, keyword);
+
+          return res.json({
+            success: true,
+            title,
+            description,
+            score,
+          });
+        });
+      })
+      .on("error", (err) => {
+        console.error("Title Meta fetch error:", err.message);
+        return res.status(500).json({
+          success: false,
+          message: "Failed to fetch metadata. Please try again later.",
+        });
+      });
+  } catch (err) {
+    console.error("Title Meta process error:", err.message);
+    return res.status(500).json({
+      success: false,
+      message: "Something went wrong. Please try again later.",
+    });
+  }
+};
+
+function extractMeta(html) {
+  const titleMatch = html.match(/<title>([^<]*)<\/title>/i);
+  const metaMatch = html.match(
+    /<meta[^>]*name=["']description["'][^>]*content=["']([^"']*)["']/i
+  );
+
+  const title = titleMatch ? titleMatch[1].trim() : '';
+  const description = metaMatch ? metaMatch[1].trim() : '';
+
+  return { title, description };
+}
+
+function pixelWidth(text) {
+  return text.length * 7.5;
+}
+
+function scoreMeta(title, description, keyword) {
+  let score = 0;
+  const titleLen = title.length;
+  const descLen = description.length;
+  const titlePix = pixelWidth(title);
+  const descPix = pixelWidth(description);
+
+  if (titleLen >= 40 && titleLen <= 60 && titlePix <= 580) score += 20;
+  if (descLen >= 120 && descLen <= 160 && descPix <= 920) score += 20;
+  if (title && keyword && title.toLowerCase().includes(keyword.toLowerCase())) score += 20;
+  if (description && keyword && description.toLowerCase().includes(keyword.toLowerCase())) score += 20;
+  if (title && description) score += 20;
+
+  return score;
+}
+
+module.exports = { chatbotHandler, fetchRedirectChain, paragraphRewriter, sentenceRewriter, serpFetch, fetchTitleMeta };
