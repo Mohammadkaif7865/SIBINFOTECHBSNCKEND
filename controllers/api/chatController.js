@@ -3,6 +3,10 @@ var connection = require('../../config/connection');
 var dateFormat = require('dateformat');
 const axios = require('axios');
 
+const https = require("https");
+const http = require("http");
+const { URL } = require("url");
+
 const chatbotHandler = async (req, res) => {
   const action = req.body.action;
   const name = req.body.name;
@@ -251,44 +255,51 @@ const sentenceRewriter = async (req, res) => {
 const serpFetch = async (req, res) => {
   const { url } = req.body;
 
-  if (!url || !/^https?:\/\/[\w\-\.]+/i.test(url)) {
+  if (!url || !/^https?:\/\//i.test(url)) {
     return res.status(400).json({ success: false, message: "Invalid URL." });
   }
 
   try {
-    const response = await axios.get(url, {
-      timeout: 10000,
-      headers: {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
-        Accept: "text/html,application/xhtml+xml",
-      },
-      maxRedirects: 5,
-    });
+    const parsedUrl = new URL(url);
+    const client = parsedUrl.protocol === "https:" ? https : http;
 
-    const html = response.data;
-    const $ = cheerio.load(html);
+    client
+      .get(url, { timeout: 10000 }, (response) => {
+        let html = "";
 
-    const title = $("title").text().trim();
-    let description = '';
+        response.on("data", (chunk) => {
+          html += chunk;
+        });
 
-    $('meta').each((_, el) => {
-      const nameAttr = $(el).attr('name')?.toLowerCase();
-      if (nameAttr === "description") {
-        description = $(el).attr("content")?.trim() || "";
-      }
-    });
+        response.on("end", () => {
+          const titleMatch = html.match(/<title>([^<]*)<\/title>/i);
+          const metaMatch = html.match(
+            /<meta\s+name=["']description["']\s+content=["']([^"']*)["']/i
+          );
 
-    return res.json({
-      success: true,
-      title: title || "No title found",
-      description: description || "No description found",
-      url,
-    });
+          const title = titleMatch ? titleMatch[1].trim() : "";
+          const description = metaMatch ? metaMatch[1].trim() : "";
+
+          return res.json({
+            success: true,
+            title,
+            description,
+            url,
+          });
+        });
+      })
+      .on("error", (err) => {
+        console.error("HTTP fetch error:", err.message);
+        return res.status(500).json({
+          success: false,
+          message: "Failed to fetch meta data. Please try again later.",
+        });
+      });
   } catch (err) {
-    console.error("Meta fetch error:", err.message || err);
+    console.error("Fetch error:", err.message);
     return res.status(500).json({
       success: false,
-      message: "Failed to fetch meta data. Please try again later.",
+      message: "Failed to process URL. Please try again later.",
     });
   }
 };
