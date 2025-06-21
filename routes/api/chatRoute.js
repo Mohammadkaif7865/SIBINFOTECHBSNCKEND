@@ -8,4 +8,6 @@ router.post('/', chatController.chatbotHandler); // Single chatbot endpoint
 
 router.post('/redirect-checker', chatController.fetchRedirectChain);
 
+router.post("/paragraph-rewriter", chatController.paragraphRewriter);
+
 module.exports = router;
