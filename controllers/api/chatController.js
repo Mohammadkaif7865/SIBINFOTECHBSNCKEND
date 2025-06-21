@@ -424,7 +424,13 @@ const wordCounter = async (req, res) => {
   const charCountNoSpace = content.replace(/\s/g, "").length;
   const wordCount = content.split(/\s+/).length;
   const sentenceCount = (content.match(/[\.\!\?]+(?=\s|$)/g) || []).length;
-  const paragraphCount = (html.match(/<p\b[^>]*>.*?<\/p>/gi) || []).length || content.split(/\n{2,}/).length || 1;
+  let paragraphCount = 1;
+  if (html) {
+    paragraphCount = (html.match(/<p\b[^>]*>.*?<\/p>/gi) || []).length || 1;
+  } else if (content) {
+    paragraphCount = content.trim().split(/\n{2,}/).length;
+  }
+
   const avgWordsPerSentence = sentenceCount ? Math.round(wordCount / sentenceCount) : 0;
   const readingTime = Math.ceil(wordCount / 240); // avg 240 wpm
 
