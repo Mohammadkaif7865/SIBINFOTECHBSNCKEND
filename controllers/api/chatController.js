@@ -424,11 +424,18 @@ const wordCounter = async (req, res) => {
   const charCountNoSpace = content.replace(/\s/g, "").length;
   const wordCount = content.split(/\s+/).length;
   const sentenceCount = (content.match(/[\.\!\?]+(?=\s|$)/g) || []).length;
+
   let paragraphCount = 1;
+
   if (html) {
+    // For HTML content
     paragraphCount = (html.match(/<p\b[^>]*>.*?<\/p>/gi) || []).length || 1;
   } else if (content) {
-    paragraphCount = content.trim().split(/\n{2,}/).length;
+    // For plain text from textarea
+    const cleanedText = content.replace(/\r\n/g, '\n').trim();
+    paragraphCount = cleanedText
+      .split(/\n{2,}/) // split by two or more newlines
+      .filter(p => p.trim().length > 0).length || 1;
   }
 
   const avgWordsPerSentence = sentenceCount ? Math.round(wordCount / sentenceCount) : 0;
