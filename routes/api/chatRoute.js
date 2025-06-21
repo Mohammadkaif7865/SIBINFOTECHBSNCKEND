@@ -6,4 +6,6 @@ var token = require('../../middlewares/token');
 
 router.post('/', chatController.chatbotHandler); // Single chatbot endpoint
 
+router.post('/redirect-checker', chatController.fetchRedirectChain);
+
 module.exports = router;

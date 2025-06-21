@@ -103,4 +103,52 @@ const getOpenAIResponse = async (message) => {
   }
 };
 
-module.exports = { chatbotHandler };
+
+const fetchRedirectChain = async (req, res) => {
+  const { url } = req.body;
+
+  if (!url) {
+    return res.status(400).json({ success: false, error: "URL is required." });
+  }
+
+  try {
+    let chain = [];
+    let currentUrl = url.startsWith("http") ? url : `http://${url}`;
+    let maxRedirects = 10;
+
+    for (let i = 0; i < maxRedirects; i++) {
+      const response = await axios.get(currentUrl, {
+        maxRedirects: 0,
+        validateStatus: (status) => status >= 200 && status < 400,
+      });
+
+      chain.push({
+        url: currentUrl,
+        status_code: response.status,
+        redirect_note: [301, 302, 303, 307, 308].includes(response.status)
+          ? "Redirected"
+          : "No Redirect",
+      });
+
+      if (response.status >= 300 && response.status < 400 && response.headers.location) {
+        const location = response.headers.location;
+        currentUrl = new URL(location, currentUrl).toString();
+      } else {
+        break;
+      }
+    }
+
+    res.json({
+      success: true,
+      chain,
+      final_url: currentUrl,
+      final_status_code: chain[chain.length - 1].status_code,
+    });
+  } catch (error) {
+    console.error("Redirect chain error:", error);
+    res.status(500).json({ success: false, error: "Failed to fetch redirect chain." });
+  }
+};
+
+
+module.exports = { chatbotHandler, fetchRedirectChain };
