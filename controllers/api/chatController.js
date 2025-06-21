@@ -251,32 +251,41 @@ const sentenceRewriter = async (req, res) => {
 const serpFetch = async (req, res) => {
   const { url } = req.body;
 
-  if (!url || !/^https?:\/\//i.test(url)) {
+  if (!url || !/^https?:\/\/[\w\-\.]+/i.test(url)) {
     return res.status(400).json({ success: false, message: "Invalid URL." });
   }
 
   try {
-    const response = await axios.get(url);
+    const response = await axios.get(url, {
+      timeout: 10000,
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+        Accept: "text/html,application/xhtml+xml",
+      },
+      maxRedirects: 5,
+    });
+
     const html = response.data;
     const $ = cheerio.load(html);
 
     const title = $("title").text().trim();
     let description = '';
 
-    $("meta").each((i, el) => {
-      if ($(el).attr("name")?.toLowerCase() === "description") {
-        description = $(el).attr("content")?.trim() || '';
+    $('meta').each((_, el) => {
+      const nameAttr = $(el).attr('name')?.toLowerCase();
+      if (nameAttr === "description") {
+        description = $(el).attr("content")?.trim() || "";
       }
     });
 
     return res.json({
       success: true,
-      title,
-      description,
+      title: title || "No title found",
+      description: description || "No description found",
       url,
     });
   } catch (err) {
-    console.error("Meta fetch error:", err.message);
+    console.error("Meta fetch error:", err.message || err);
     return res.status(500).json({
       success: false,
       message: "Failed to fetch meta data. Please try again later.",
