@@ -16,4 +16,6 @@ router.post("/serp-fetch", chatController.serpFetch);
 
 router.post('/title-meta-check', chatController.fetchTitleMeta);
 
+router.post("/word-counter", chatController.wordCounter);
+
 module.exports = router;

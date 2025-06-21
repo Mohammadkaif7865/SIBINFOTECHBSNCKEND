@@ -383,4 +383,63 @@ function scoreMeta(title, description, keyword) {
   return score;
 }
 
-module.exports = { chatbotHandler, fetchRedirectChain, paragraphRewriter, sentenceRewriter, serpFetch, fetchTitleMeta };
+
+const wordCounter = async (req, res) => {
+  const { text: inputText = "", url = "" } = req.body;
+
+  let content = inputText;
+  let html = "";
+
+  // Fetch HTML if URL is given
+  if (!content && url) {
+    try {
+      const response = await axios.get(url, { timeout: 8000 });
+      html = response.data;
+
+      // Strip script, style, and head tags manually
+      html = html
+        .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
+        .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
+        .replace(/<head[^>]*>[\s\S]*?<\/head>/gi, "")
+        .replace(/<footer[^>]*>[\s\S]*?<\/footer>/gi, "")
+        .replace(/<nav[^>]*>[\s\S]*?<\/nav>/gi, "");
+
+      // Remove HTML tags to extract plain text
+      content = html.replace(/<\/?[^>]+(>|$)/g, " ");
+    } catch (error) {
+      console.error("Error fetching URL:", error.message);
+      return res.status(400).json({ success: false, message: "Failed to fetch content from URL." });
+    }
+  }
+
+  // Final plain text cleanup
+  content = content.replace(/\s+/g, " ").trim();
+
+  if (!content) {
+    return res.status(400).json({ success: false, message: "No valid text provided." });
+  }
+
+  // Analysis
+  const charCount = content.length;
+  const charCountNoSpace = content.replace(/\s/g, "").length;
+  const wordCount = content.split(/\s+/).length;
+  const sentenceCount = (content.match(/[\.\!\?]+(?=\s|$)/g) || []).length;
+  const paragraphCount = (html.match(/<p\b[^>]*>.*?<\/p>/gi) || []).length || content.split(/\n{2,}/).length || 1;
+  const avgWordsPerSentence = sentenceCount ? Math.round(wordCount / sentenceCount) : 0;
+  const readingTime = Math.ceil(wordCount / 240); // avg 240 wpm
+
+  return res.json({
+    success: true,
+    metrics: {
+      charCount,
+      charCountNoSpace,
+      wordCount,
+      sentenceCount,
+      paragraphCount,
+      avgWordsPerSentence,
+      readingTime,
+    },
+  });
+};
+
+module.exports = { chatbotHandler, fetchRedirectChain, paragraphRewriter, sentenceRewriter, serpFetch, fetchTitleMeta, wordCounter };
