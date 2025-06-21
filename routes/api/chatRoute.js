@@ -12,4 +12,6 @@ router.post("/paragraph-rewriter", chatController.paragraphRewriter);
 
 router.post("/sentence-rewriter", chatController.sentenceRewriter);
 
+router.post("/serp-fetch", serpFetch);
+
 module.exports = router;

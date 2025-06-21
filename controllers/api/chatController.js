@@ -248,4 +248,40 @@ const sentenceRewriter = async (req, res) => {
   }
 };
 
-module.exports = { chatbotHandler, fetchRedirectChain, paragraphRewriter, sentenceRewriter };
+const serpFetch = async (req, res) => {
+  const { url } = req.body;
+
+  if (!url || !/^https?:\/\//i.test(url)) {
+    return res.status(400).json({ success: false, message: "Invalid URL." });
+  }
+
+  try {
+    const response = await axios.get(url);
+    const html = response.data;
+    const $ = cheerio.load(html);
+
+    const title = $("title").text().trim();
+    let description = '';
+
+    $("meta").each((i, el) => {
+      if ($(el).attr("name")?.toLowerCase() === "description") {
+        description = $(el).attr("content")?.trim() || '';
+      }
+    });
+
+    return res.json({
+      success: true,
+      title,
+      description,
+      url,
+    });
+  } catch (err) {
+    console.error("Meta fetch error:", err.message);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch meta data. Please try again later.",
+    });
+  }
+};
+
+module.exports = { chatbotHandler, fetchRedirectChain, paragraphRewriter, sentenceRewriter, serpFetch };
