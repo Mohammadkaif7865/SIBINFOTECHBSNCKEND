@@ -10,4 +10,6 @@ router.post('/redirect-checker', chatController.fetchRedirectChain);
 
 router.post("/paragraph-rewriter", chatController.paragraphRewriter);
 
+router.post("/sentence-rewriter", chatController.sentenceRewriter);
+
 module.exports = router;

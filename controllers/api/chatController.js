@@ -199,4 +199,53 @@ const paragraphRewriter = async (req, res) => {
   }
 };
 
-module.exports = { chatbotHandler, fetchRedirectChain, paragraphRewriter };
+
+const sentenceRewriter = async (req, res) => {
+  const { sentence, tone = "Professional", style = "nochange" } = req.body;
+
+  if (!sentence) {
+    return res.status(400).json({ success: false, message: "Sentence is required." });
+  }
+
+  let prompt = `You are a professional content writer. Rewrite the following sentence in a ${tone} tone. `;
+
+  if (style === "shorten") {
+    prompt += "Make it concise but clear. ";
+  } else if (style === "expand") {
+    prompt += "Add slightly more detail while keeping the message clear. ";
+  } else {
+    prompt += "Keep the sentence structure mostly unchanged. ";
+  }
+
+  prompt += `Avoid casual expressions like 'Hey there'. Maintain a professional, business-oriented tone.\n\nSentence:\n"${sentence}"\n\nRewritten:`;
+
+  try {
+    const response = await axios.post(
+      "https://api.openai.com/v1/chat/completions",
+      {
+        model: "gpt-4o-mini",
+        messages: [{ role: "user", content: prompt }],
+        max_tokens: 150,
+        temperature: 0.5,
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.AI_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    const rewritten = response.data.choices?.[0]?.message?.content?.trim() || "";
+
+    return res.json({ success: true, rewritten });
+  } catch (err) {
+    console.error("OpenAI Error:", err.response?.data || err.message);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to rewrite sentence. Please try again later.",
+    });
+  }
+};
+
+module.exports = { chatbotHandler, fetchRedirectChain, paragraphRewriter, sentenceRewriter };
