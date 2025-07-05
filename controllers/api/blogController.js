@@ -202,6 +202,7 @@ var blogAdd = (req, res) => {
               const sectionData = {
                 blog_id: blogId,
                 title: section.title,
+                section_link_title: section.section_link_title,
                 media: mediaPath,
                 media_type: section.media_type,
                 description: section.description,
@@ -590,6 +591,7 @@ const blogEdit = (req, res) => {
                 const sectionData = {
                   blog_id: req.body.id,
                   title: section.title,
+                  section_link_title: section.section_link_title,
                   media: mediaPath,
                   media_type: section.media_type,
                   description: section.description,
