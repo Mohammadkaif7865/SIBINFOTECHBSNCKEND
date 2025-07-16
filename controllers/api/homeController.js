@@ -18,6 +18,11 @@ var dashboardData = async (req, res) => {
   );
   dashboardCount.category = category[0].count;
 
+  let author = await conn.awaitQuery(
+    `SELECT COUNT(id) as count FROM authors`
+  );
+  dashboardCount.author = author[0].count;
+
   let blog = await conn.awaitQuery(`SELECT COUNT(id) as count FROM blog`);
   dashboardCount.blog = blog[0].count;
 
