@@ -89,7 +89,7 @@ var authorEditData = (req, res) => {
 var authorEdit = (req, res) => {
 
   // Get previous image paths first
-    const fetchSql = `SELECT image FROM author WHERE id = ?`;
+    const fetchSql = `SELECT image FROM authors WHERE id = ?`;
     connection.query(fetchSql, [req.body.id], (err, result) => {
       if (err) {
         console.error("Error fetching previous data:", err);
@@ -135,8 +135,8 @@ var authorEdit = (req, res) => {
           res.json({ error: true, message: 'Something went wrong' });
         }
       });
-      
   });
+
 };
 
 // Delete author
