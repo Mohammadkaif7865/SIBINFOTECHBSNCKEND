@@ -20,7 +20,7 @@ const cpUpload = upload.any(); // Accept any number of files with any field name
 
 var token = require('../../middlewares/token');
 
-router.get('/all', token.validateToken, blogController.blogsData);``
+router.get('/all', token.validateToken, blogController.blogsData);
 
 // router.post('/add', token.validateToken, upload.fields([{
 //  name: 'image', maxCount: 1

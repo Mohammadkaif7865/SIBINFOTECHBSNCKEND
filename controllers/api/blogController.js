@@ -85,6 +85,7 @@ var blogAdd = (req, res) => {
     // Main blog data
     const formData = {
       category_id: req.body.category_id,
+      author_id: req.body.author_id,
       name: req.body.name,
       slug:
         req.body.slug ||
@@ -488,6 +489,7 @@ const blogEdit = (req, res) => {
         // Update main blog data
         const blogData = {
           category_id: req.body.category_id,
+          author_id: req.body.author_id,
           name: req.body.name,
           slug: slugify(req.body.slug, {
             lower: true,
