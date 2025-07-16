@@ -89,7 +89,7 @@ var authorEditData = (req, res) => {
 var authorEdit = (req, res) => {
 
   // Get previous image paths first
-    const fetchSql = `SELECT image, banner_image FROM author WHERE id = ?`;
+    const fetchSql = `SELECT image FROM author WHERE id = ?`;
     connection.query(fetchSql, [req.body.id], (err, result) => {
       if (err) {
         console.error("Error fetching previous data:", err);
