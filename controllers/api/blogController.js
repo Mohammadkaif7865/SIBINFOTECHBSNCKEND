@@ -18,7 +18,7 @@ var blogsData = (req, res) => {
     limit += " LIMIT " + req.query.limit;
   }
 
-  let sql = `SELECT blog.*, category.name as category_name FROM blog LEFT JOIN category ON category.id = blog.category_id WHERE 1 ${condition} ORDER BY bdate DESC ${limit}`;
+  let sql = `SELECT blog.*, category.name as category_name, authors.name as author_name FROM blog LEFT JOIN category ON category.id = blog.category_id LEFT JOIN authors ON authors.id = blog.author_id WHERE 1 ${condition} ORDER BY bdate DESC ${limit}`;
 
   connection.query(sql, function (err, blogs) {
     if (!err) {
