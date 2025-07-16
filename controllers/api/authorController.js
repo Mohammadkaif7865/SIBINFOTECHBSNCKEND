@@ -2,7 +2,9 @@ const async = require('async');
 var connection = require('../../config/connection');
 var dateFormat = require('dateformat');
 var moment = require('moment');
-var slugify = require('slugify');
+const fs = require("fs");
+var slugify = require("slugify");
+const path = require("path");
 
 // Get all authors
 var authorsData = (req, res) => {
@@ -22,9 +24,36 @@ var authorsData = (req, res) => {
 
 // Add new author
 var authorAdd = (req, res) => {
+
+    let imagePath = ""
+    // Main author image handling - fixed to match the edit function's approach
+    if (req.files && req.files.length > 0) {
+      const imageFile = req.files.find((f) => f.fieldname === "image")
+      if (imageFile) {
+        const customImageName = req.body.image_name || `author_${Date.now()}`
+        const fileExtension = path.extname(imageFile.originalname)
+        const newFileName = `${customImageName}${fileExtension}`
+        imagePath = path.join("uploads/author/", newFileName)
+
+        // Ensure directory exists
+        const dir = path.dirname(imagePath)
+        if (!fs.existsSync(dir)) {
+          fs.mkdirSync(dir, { recursive: true })
+        }
+
+        fs.renameSync(imageFile.path, imagePath)
+        console.log("Image saved to:", imagePath)
+      } else {
+        console.log("No image file found in request")
+      }
+    } else {
+      console.log("No files in request")
+    }
+
   let formData = {
     name: req.body.name,
     slug: slugify(req.body.name, { lower: true }),
+    image: imagePath,
     description: req.body.description || '',
     createdAt: dateFormat(Date.now(), "yyyy-mm-dd HH:MM:ss"),
     updatedAt: dateFormat(Date.now(), "yyyy-mm-dd HH:MM:ss")
@@ -58,21 +87,55 @@ var authorEditData = (req, res) => {
 
 // Update author
 var authorEdit = (req, res) => {
-  let formData = {
-    name: req.body.name,
-    slug: slugify(req.body.name, { lower: true }),
-    description: req.body.description || '',
-    updatedAt: dateFormat(Date.now(), "yyyy-mm-dd HH:MM:ss")
-  };
 
-  let sql = `UPDATE authors SET ? WHERE id = '${req.body.id}'`;
+  // Get previous image paths first
+    const fetchSql = `SELECT image, banner_image FROM author WHERE id = ?`;
+    connection.query(fetchSql, [req.body.id], (err, result) => {
+      if (err) {
+        console.error("Error fetching previous data:", err);
+        return res.json({ error: true, message: "Error fetching previous data" });
+      }
 
-  connection.query(sql, formData, function (err) {
-    if (!err) {
-      res.json({ error: false, message: 'Author successfully updated' });
-    } else {
-      res.json({ error: true, message: 'Something went wrong' });
-    }
+      if (!result.length) {
+        return res.json({ error: true, message: "Author not found" });
+      }
+
+      const previousImagePath = result[0].image;
+
+      // Handle main image
+      let imagePath = previousImagePath;
+      if (req.files && req.files.find(f => f.fieldname === 'image')) {
+        const imageFile = req.files.find(f => f.fieldname === 'image');
+        const fileExtension = path.extname(imageFile.originalname);
+        const newFileName = `${req.body.image_name}${fileExtension}`;
+        imagePath = path.join('uploads/author/', newFileName);
+
+        // Delete previous image if exists
+        if (previousImagePath && fs.existsSync(previousImagePath)) {
+          fs.unlinkSync(previousImagePath);
+        }
+
+        fs.renameSync(imageFile.path, imagePath);
+      }
+
+      let formData = {
+        name: req.body.name,
+        slug: slugify(req.body.name, { lower: true }),
+        image: imagePath,
+        description: req.body.description || '',
+        updatedAt: dateFormat(Date.now(), "yyyy-mm-dd HH:MM:ss")
+      };
+
+      let sql = `UPDATE authors SET ? WHERE id = '${req.body.id}'`;
+
+      connection.query(sql, formData, function (err) {
+        if (!err) {
+          res.json({ error: false, message: 'Author successfully updated' });
+        } else {
+          res.json({ error: true, message: 'Something went wrong' });
+        }
+      });
+      
   });
 };
 
