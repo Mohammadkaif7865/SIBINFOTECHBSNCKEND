@@ -55,7 +55,7 @@ app.post("/api/send-email", (req, res) => {
     req.body;
   const mailOptions = {
     from: "SIB Infotech <website@sibinfotech.com>",
-    to: "radhey@sibinfotech.com",
+    to: "anuj@sibinfotech.com",
     // to: "mohammadkaif051197@gmail.com",
     subject: `Enquiry Landing Page - ${fromWhere} `,
     html: `
@@ -122,7 +122,7 @@ app.post("/api/send-ppc-results", validateToken, (req, res) => {
   const mailOptions = {
     from: "SIB Infotech <website@sibinfotech.com>",
     to: userEmail, // 👈 sent to the user
-    // cc: ["contact@sibinfotech.com", "radhey@sibinfotech.com"], // 👈 CC to both admins
+    // cc: ["contact@sibinfotech.com", "anuj@sibinfotech.com"], // 👈 CC to both admins
     subject: `${fromWhere}`,
     html: `
       <p>Hi ${userName || "there"},</p>
@@ -208,7 +208,7 @@ app.post("/api/send-email-any", (req, res) => {
     from: "SIB Infotech <website@sibinfotech.com>",
     to: "contact@sibinfotech.com",
     // to: "sibinfotech101@gmail.com",
-    cc: "radhey@sibinfotech.com",
+    cc: "anuj@sibinfotech.com",
     subject: `${fromWhere}`,
     html: html,
   };
