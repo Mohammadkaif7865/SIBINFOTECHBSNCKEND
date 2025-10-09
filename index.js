@@ -55,8 +55,8 @@ app.post("/api/send-email", (req, res) => {
     req.body;
   const mailOptions = {
     from: "SIB Infotech <website@sibinfotech.com>",
-    to: "anuj@sibinfotech.com",
-    // to: "mohammadkaif051197@gmail.com",
+    // to: "anuj@sibinfotech.com",
+    to: "sibinfotech101@gmail.com",
     subject: `Enquiry Landing Page - ${fromWhere} `,
     html: `
               <p>Dear Admin,</p>
@@ -206,9 +206,9 @@ app.post("/api/send-email-any", (req, res) => {
 
   const mailOptions = {
     from: "SIB Infotech <website@sibinfotech.com>",
-    to: "contact@sibinfotech.com",
-    // to: "sibinfotech101@gmail.com",
-    cc: "anuj@sibinfotech.com",
+    // to: "contact@sibinfotech.com",
+    to: "sibinfotech101@gmail.com",
+    // cc: "anuj@sibinfotech.com",
     subject: `${fromWhere}`,
     html: html,
   };
@@ -244,7 +244,8 @@ app.post("/api/send-email-application", (req, res) => {
         contentType: "application/pdf", // Mime type of the file
       },
     ],
-    to: "career@sibinfotech.com",
+    // to: "career@sibinfotech.com",
+    to: "sibinfotech101@gmail.com",
     subject: `${fromWhere}`,
     html: html,
   };

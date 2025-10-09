@@ -115,28 +115,58 @@ var submit_quotes = (req, res) => {
     }
   });
 };
-var submit_banner_enquiry = (req, res) => {
-  let formData = {
-    name: req.body.name,
-    cname: req.body.cname,
-    email: req.body.email,
-    phone: req.body.phone,
-    details: req.body.details,
-    service: req.body.service,
-    website: req.body.website,
-    pageUrl: req.body.pageUrl,
-    createdAt: dateFormat(Date.now(), "yyyy-mm-dd HH:MM:ss"),
-    updatedAt: dateFormat(Date.now(), "yyyy-mm-dd HH:MM:ss"),
-  };
 
-  let sql = "INSERT INTO banner_enquiry SET ?";
-  connection.query(sql, formData, (err) => {
-    if (!err) {
-      res.json({ error: false, message: "Successfully sent" });
-    } else {
-      res.json({ error: true, message: "Something went wrong" });
+var submit_banner_enquiry = async (req, res) => {
+  try {
+    // === GOOGLE RECAPTCHA VERIFICATION START ===
+    const token = req.body.recaptchaToken;
+    if (!token) {
+      return res.json({ error: true, message: "reCAPTCHA token missing" });
     }
-  });
+
+    const verifyUrl = "https://www.google.com/recaptcha/api/siteverify";
+    const params = `secret=${encodeURIComponent("6LeWu-IrAAAAAJ0czPF94_mE5hF8wQMUBrbIDQPm")}&response=${encodeURIComponent(token)}${
+      req.ip ? `&remoteip=${encodeURIComponent(req.ip)}` : ""
+    }`;
+
+    const verifyResp = await fetch(verifyUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: params,
+    });
+
+    const data = await verifyResp.json();
+    if (!data.success) {
+      return res.json({ error: true, message: "reCAPTCHA verification failed" });
+    }
+    // === GOOGLE RECAPTCHA VERIFICATION END ===
+
+    // === EXISTING ENQUIRY INSERT LOGIC ===
+    let formData = {
+      name: req.body.name,
+      cname: req.body.cname,
+      email: req.body.email,
+      phone: req.body.phone,
+      details: req.body.details,
+      service: req.body.service,
+      website: req.body.website,
+      pageUrl: req.body.pageUrl,
+      createdAt: dateFormat(Date.now(), "yyyy-mm-dd HH:MM:ss"),
+      updatedAt: dateFormat(Date.now(), "yyyy-mm-dd HH:MM:ss"),
+    };
+
+    let sql = "INSERT INTO banner_enquiry SET ?";
+    connection.query(sql, formData, (err) => {
+      if (!err) {
+        res.json({ error: false, message: "Successfully sent" });
+      } else {
+        res.json({ error: true, message: "Something went wrong" });
+      }
+    });
+  } catch (err) {
+    console.error("submit_banner_enquiry error:", err);
+    res.json({ error: true, message: "Server error" });
+  }
 };
 
 var careersData = async (req, res) => {
