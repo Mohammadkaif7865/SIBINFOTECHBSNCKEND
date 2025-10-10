@@ -97,24 +97,87 @@ var submit_enquiry = (req, res) => {
     }
   });
 };
-var submit_quotes = (req, res) => {
-  let formData = {
-    name: req.body.name,
-    email: req.body.email,
-    message: req.body.message,
-    created_at: dateFormat(Date.now(), "yyyy-mm-dd HH:MM:ss"),
-    updated_at: dateFormat(Date.now(), "yyyy-mm-dd HH:MM:ss"),
-  };
+// Replace your existing handler with this complete function.
+// It verifies reCAPTCHA v2 token server-side before inserting into DB.
+// Requires environment variable: RECAPTCHA_SECRET
+// If your Node < 18, install node-fetch: npm i node-fetch
 
-  let sql = "INSERT INTO messages SET ?";
-  connection.query(sql, formData, (err) => {
-    if (!err) {
-      res.json({ error: false, message: "Successfully sent" });
-    } else {
-      res.json({ error: true, message: "Something went wrong" });
+var submit_quotes = async (req, res) => {
+  // --- reCAPTCHA v2 server-side validation ---
+  try {
+    // read token from client
+    const token = String(req.body.recaptchaToken || "").trim();
+    const secret = process.env.RECAPTCHA_SECRET || "";
+
+    if (!token || !secret) {
+      return res.status(403).json({ error: true, message: "Captcha required" });
     }
-  });
+
+    // determine client IP (x-forwarded-for preferred)
+    const remoteip =
+      ((req.headers && (req.headers["x-forwarded-for"] || req.headers["X-Forwarded-For"])) ||
+        req.connection?.remoteAddress ||
+        req.socket?.remoteAddress ||
+        req.ip ||
+        "")
+        .toString()
+        .split(",")[0]
+        .trim();
+
+    // prepare POST body
+    const params = new URLSearchParams();
+    params.append("secret", secret);
+    params.append("response", token);
+    if (remoteip) params.append("remoteip", remoteip);
+
+    // use global fetch if available, otherwise require node-fetch
+    const _fetch = (typeof fetch === "function") ? fetch : (typeof global !== "undefined" && global.fetch) ? global.fetch : require("node-fetch");
+
+    const verifyRes = await _fetch("https://www.google.com/recaptcha/api/siteverify", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: params.toString(),
+    });
+
+    const verifyJson = await verifyRes.json();
+
+    // For reCAPTCHA v2 we expect success === true
+    if (!verifyJson || verifyJson.success !== true) {
+      // optional: you can log verifyJson to debug why it failed
+      console.warn("reCAPTCHA failed:", verifyJson);
+      return res.status(403).json({ error: true, message: "Captcha verification failed" });
+    }
+    // --- end captcha validation ---
+  } catch (err) {
+    console.error("reCAPTCHA verification error:", err);
+    return res.status(500).json({ error: true, message: "Captcha verification error" });
+  }
+
+  // If we reach here, captcha passed — proceed with saving form data
+  try {
+    let formData = {
+      name: req.body.name,
+      email: req.body.email,
+      message: req.body.message,
+      created_at: dateFormat(Date.now(), "yyyy-mm-dd HH:MM:ss"),
+      updated_at: dateFormat(Date.now(), "yyyy-mm-dd HH:MM:ss"),
+    };
+
+    let sql = "INSERT INTO messages SET ?";
+    connection.query(sql, formData, (err) => {
+      if (!err) {
+        res.json({ error: false, message: "Successfully sent" });
+      } else {
+        console.error("DB insert error:", err);
+        res.json({ error: true, message: "Something went wrong" });
+      }
+    });
+  } catch (err) {
+    console.error("Submit handler error:", err);
+    res.json({ error: true, message: "Something went wrong" });
+  }
 };
+
 
 var submit_banner_enquiry = async (req, res) => {
   try {
