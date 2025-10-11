@@ -107,19 +107,21 @@ var submit_quotes = async (req, res) => {
   try {
     // read token from client
     const token = String(req.body.recaptchaToken || "").trim();
-    const secret = process.env.RECAPTCHA_SECRET || "";
+    const secret = "6LeWu-IrAAAAAJ0czPF94_mE5hF8wQMUBrbIDQPm";
 
-    if (!token || !secret) {
+    if (!token) {
+      console.warn("submit_quotes: missing recaptcha token from client");
       return res.status(403).json({ error: true, message: "Captcha required" });
+    }
+    if (!secret) {
+      console.error("submit_quotes: RECAPTCHA_SECRET not configured on server");
+      return res.status(500).json({ error: true, message: "Server captcha configuration error" });
     }
 
     // determine client IP (x-forwarded-for preferred)
+    const forwarded = req.headers && (req.headers["x-forwarded-for"] || req.headers["X-Forwarded-For"]);
     const remoteip =
-      ((req.headers && (req.headers["x-forwarded-for"] || req.headers["X-Forwarded-For"])) ||
-        req.connection?.remoteAddress ||
-        req.socket?.remoteAddress ||
-        req.ip ||
-        "")
+      (forwarded || req.connection?.remoteAddress || req.socket?.remoteAddress || req.ip || "")
         .toString()
         .split(",")[0]
         .trim();
@@ -131,7 +133,18 @@ var submit_quotes = async (req, res) => {
     if (remoteip) params.append("remoteip", remoteip);
 
     // use global fetch if available, otherwise require node-fetch
-    const _fetch = (typeof fetch === "function") ? fetch : (typeof global !== "undefined" && global.fetch) ? global.fetch : require("node-fetch");
+    let _fetch;
+    if (typeof fetch === "function") {
+      _fetch = fetch;
+    } else {
+      try {
+        // try global.fetch (some environments)
+        _fetch = (typeof global !== "undefined" && global.fetch) ? global.fetch : require("node-fetch");
+      } catch (err) {
+        console.error("submit_quotes: fetch is not available and node-fetch could not be required", err);
+        return res.status(500).json({ error: true, message: "Server fetch error" });
+      }
+    }
 
     const verifyRes = await _fetch("https://www.google.com/recaptcha/api/siteverify", {
       method: "POST",
@@ -139,13 +152,25 @@ var submit_quotes = async (req, res) => {
       body: params.toString(),
     });
 
-    const verifyJson = await verifyRes.json();
+    // read and parse response robustly
+    let verifyJson;
+    try {
+      verifyJson = await verifyRes.json();
+    } catch (err) {
+      const text = await verifyRes.text().catch(() => "");
+      console.error("submit_quotes: unable to parse reCAPTCHA response as JSON", err, "raw:", text);
+      return res.status(500).json({ error: true, message: "Captcha verification error" });
+    }
 
     // For reCAPTCHA v2 we expect success === true
     if (!verifyJson || verifyJson.success !== true) {
-      // optional: you can log verifyJson to debug why it failed
       console.warn("reCAPTCHA failed:", verifyJson);
-      return res.status(403).json({ error: true, message: "Captcha verification failed" });
+      // expose limited friendly message + possible error codes for debugging
+      const reasons = Array.isArray(verifyJson["error-codes"]) ? verifyJson["error-codes"].join(", ") : "";
+      return res.status(403).json({
+        error: true,
+        message: reasons ? `Captcha verification failed: ${reasons}` : "Captcha verification failed",
+      });
     }
     // --- end captcha validation ---
   } catch (err) {
