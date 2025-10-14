@@ -56,7 +56,7 @@ app.post("/api/send-email", (req, res) => {
   const mailOptions = {
     from: "SIB Infotech <website@sibinfotech.com>",
     // to: "anuj@sibinfotech.com",
-    to: "sibinfotech101@gmail.com",
+    to: "anuj@sibinfotech.com",
     subject: `Enquiry Landing Page - ${fromWhere} `,
     html: `
               <p>Dear Admin,</p>
@@ -207,7 +207,7 @@ app.post("/api/send-email-any", (req, res) => {
   const mailOptions = {
     from: "SIB Infotech <website@sibinfotech.com>",
     // to: "contact@sibinfotech.com",
-    to: "sibinfotech101@gmail.com",
+    to: "anuj@sibinfotech.com",
     // cc: "anuj@sibinfotech.com",
     subject: `${fromWhere}`,
     html: html,
@@ -245,7 +245,7 @@ app.post("/api/send-email-application", (req, res) => {
       },
     ],
     // to: "career@sibinfotech.com",
-    to: "sibinfotech101@gmail.com",
+    to: "anuj@sibinfotech.com",
     subject: `${fromWhere}`,
     html: html,
   };
