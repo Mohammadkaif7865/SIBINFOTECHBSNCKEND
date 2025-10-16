@@ -244,8 +244,8 @@ app.post("/api/send-email-application", (req, res) => {
         contentType: "application/pdf", // Mime type of the file
       },
     ],
-    // to: "career@sibinfotech.com",
-    to: "anuj@sibinfotech.com",
+    to: "career@sibinfotech.com",
+    // to: "anuj@sibinfotech.com",
     subject: `${fromWhere}`,
     html: html,
   };
