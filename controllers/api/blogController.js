@@ -165,7 +165,6 @@ var blogAdd = (req, res) => {
 
         // Process and insert sections
         if (sections.length > 0) {
-          
           const sectionPromises = sections.map((section, index) => {
             return new Promise((resolve, reject) => {
               let mediaPath = null;
@@ -230,7 +229,6 @@ var blogAdd = (req, res) => {
               });
             });
           });
-
 
           // Execute all section insert promises
           Promise.all(sectionPromises)
@@ -371,7 +369,6 @@ var blogAdd = (req, res) => {
   }
 }
 
-
 var blogEditData = (req, res) => {
   let condition = "";
 
@@ -421,12 +418,11 @@ var blogEditData = (req, res) => {
   });
 };
 
-
 // Function to format date to YYYY-MM-DD
 function formatDate(dateString) {
   let date = new Date(dateString);
   let year = date.getFullYear();
-  let month = ("0" + (date.getMonth() + 1)).slice(-2); // Months are zero based
+  let month = ("0" + (date.getMonth() + 1)).slice(-2);
   let day = ("0" + date.getDate()).slice(-2);
   return `${year}-${month}-${day}`;
 }
@@ -448,13 +444,16 @@ const blogEdit = (req, res) => {
       const previousImagePath = result[0].image;
       const previousBannerImagePath = result[0].banner_image;
 
+      const imageFile = req.files && req.files.find((f) => f.fieldname === "image");
+      const imageHidden = typeof req.body.imageHidden === "string" ? req.body.imageHidden.trim() : req.body.imageHidden;
+
       // Handle main image
       let imagePath = previousImagePath;
-      if (req.files && req.files.find(f => f.fieldname === 'image')) {
-        const imageFile = req.files.find(f => f.fieldname === 'image');
+
+      if (imageFile) {
         const fileExtension = path.extname(imageFile.originalname);
         const newFileName = `${req.body.image_name}${fileExtension}`;
-        imagePath = path.join('uploads/blog/', newFileName);
+        imagePath = path.join("uploads/blog/", newFileName);
 
         // Delete previous image if exists
         if (previousImagePath && fs.existsSync(previousImagePath)) {
@@ -462,6 +461,12 @@ const blogEdit = (req, res) => {
         }
 
         fs.renameSync(imageFile.path, imagePath);
+      } else if (!imageHidden) {
+        // Image was removed from frontend and no new image uploaded
+        if (previousImagePath && fs.existsSync(previousImagePath)) {
+          fs.unlinkSync(previousImagePath);
+        }
+        imagePath = "";
       }
 
       // Handle banner image
@@ -546,79 +551,78 @@ const blogEdit = (req, res) => {
               }
 
               // Insert sections
-            let sections = [];
-            try {
-              sections = JSON.parse(req.body.sections || '[]');
-            } catch (e) {
-              console.error("Error parsing sections:", e);
-              return connection.rollback(() => {
-                res.json({ error: true, message: "Invalid sections data" });
-              });
-            }
+              let sections = [];
+              try {
+                sections = JSON.parse(req.body.sections || '[]');
+              } catch (e) {
+                console.error("Error parsing sections:", e);
+                return connection.rollback(() => {
+                  res.json({ error: true, message: "Invalid sections data" });
+                });
+              }
 
-            const sectionPromises = sections.map((section, index) => {
-              return new Promise((resolve, reject) => {
-                let mediaPath = null;
+              const sectionPromises = sections.map((section, index) => {
+                return new Promise((resolve, reject) => {
+                  let mediaPath = null;
 
-                const sectionFile = req.files && req.files.find(f => f.fieldname === `section_media_${index}`);
+                  const sectionFile = req.files && req.files.find(f => f.fieldname === `section_media_${index}`);
 
-                // If new file is uploaded and media type is image or video
-                if ((section.media_type === "image" || section.media_type === "video") && sectionFile) {
-                  const mediaFileName = `section_${req.body.id}_${index}_${Date.now()}${path.extname(sectionFile.originalname)}`;
-                  mediaPath = path.join("uploads/blog/", mediaFileName);
+                  // If new file is uploaded and media type is image or video
+                  if ((section.media_type === "image" || section.media_type === "video") && sectionFile) {
+                    const mediaFileName = `section_${req.body.id}_${index}_${Date.now()}${path.extname(sectionFile.originalname)}`;
+                    mediaPath = path.join("uploads/blog/", mediaFileName);
 
-                  const dir = path.dirname(mediaPath);
-                  if (!fs.existsSync(dir)) {
-                    fs.mkdirSync(dir, { recursive: true });
+                    const dir = path.dirname(mediaPath);
+                    if (!fs.existsSync(dir)) {
+                      fs.mkdirSync(dir, { recursive: true });
+                    }
+
+                    fs.renameSync(sectionFile.path, mediaPath);
+                    console.log(`Section ${index} media saved to:`, mediaPath);
                   }
 
-                  fs.renameSync(sectionFile.path, mediaPath);
-                  console.log(`Section ${index} media saved to:`, mediaPath);
-                }
-
-                // If media type is YouTube
-                else if (section.media_type === "youtube" && typeof section.media === "string") {
-                  mediaPath = section.media;
-                }
-
-                // If no new file uploaded but existing image/video path is available, keep it
-                else if (
-                  (section.media_type === "image" || section.media_type === "video") &&
-                  !sectionFile &&
-                  typeof section.media === "string"
-                ) {
-                  mediaPath = section.media;
-                }
-
-                const sectionData = {
-                  blog_id: req.body.id,
-                  title: section.title,
-                  section_link_title: section.section_link_title,
-                  media: mediaPath,
-                  media_type: section.media_type,
-                  description: section.description,
-                  grey_quote: section.grey_quote,
-                  grey_quote_bg_color: section.grey_quote_bg_color,
-                  grey_quote_border_color: section.grey_quote_border_color,
-                  section_bg_color: section.section_bg_color,
-                  section_border_color: section.section_border_color,
-                  order: section.order,
-                  publish: section.publish,
-                  createdAt: dateFormat(new Date(), "yyyy-mm-dd HH:MM:ss"),
-                  updatedAt: dateFormat(new Date(), "yyyy-mm-dd HH:MM:ss"),
-                };
-
-                connection.query("INSERT INTO blog_sections SET ?", sectionData, (err) => {
-                  if (err) {
-                    console.error(`Error inserting section ${index}:`, err);
-                    reject(err);
-                  } else {
-                    resolve();
+                  // If media type is YouTube
+                  else if (section.media_type === "youtube" && typeof section.media === "string") {
+                    mediaPath = section.media;
                   }
+
+                  // If no new file uploaded but existing image/video path is available, keep it
+                  else if (
+                    (section.media_type === "image" || section.media_type === "video") &&
+                    !sectionFile &&
+                    typeof section.media === "string"
+                  ) {
+                    mediaPath = section.media;
+                  }
+
+                  const sectionData = {
+                    blog_id: req.body.id,
+                    title: section.title,
+                    section_link_title: section.section_link_title,
+                    media: mediaPath,
+                    media_type: section.media_type,
+                    description: section.description,
+                    grey_quote: section.grey_quote,
+                    grey_quote_bg_color: section.grey_quote_bg_color,
+                    grey_quote_border_color: section.grey_quote_border_color,
+                    section_bg_color: section.section_bg_color,
+                    section_border_color: section.section_border_color,
+                    order: section.order,
+                    publish: section.publish,
+                    createdAt: dateFormat(new Date(), "yyyy-mm-dd HH:MM:ss"),
+                    updatedAt: dateFormat(new Date(), "yyyy-mm-dd HH:MM:ss"),
+                  };
+
+                  connection.query("INSERT INTO blog_sections SET ?", sectionData, (err) => {
+                    if (err) {
+                      console.error(`Error inserting section ${index}:`, err);
+                      reject(err);
+                    } else {
+                      resolve();
+                    }
+                  });
                 });
               });
-            });
-
 
               // Insert FAQs
               let faqs = [];
@@ -679,7 +683,6 @@ const blogEdit = (req, res) => {
     res.json({ error: true, message: "An unexpected error occurred" });
   }
 };
-
 
 var blogDeleteData = (req, res) => {
   let sql = `DELETE FROM blog WHERE id = '${req.body.id}'`;
