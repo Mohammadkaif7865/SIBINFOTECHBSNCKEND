@@ -429,7 +429,6 @@ function formatDate(dateString) {
 
 const blogEdit = (req, res) => {
   try {
-    // Get previous image paths first
     const fetchSql = `SELECT image, banner_image FROM blog WHERE id = ?`;
     connection.query(fetchSql, [req.body.id], (err, result) => {
       if (err) {
@@ -445,15 +444,28 @@ const blogEdit = (req, res) => {
       const previousBannerImagePath = result[0].banner_image;
 
       const imageFile = req.files && req.files.find((f) => f.fieldname === "image");
-      const imageHidden = typeof req.body.imageHidden === "string" ? req.body.imageHidden.trim() : req.body.imageHidden;
+      const imageHidden =
+        typeof req.body.imageHidden === "string" ? req.body.imageHidden.trim() : "";
 
       // Handle main image
-      let imagePath = previousImagePath;
+      let imagePath = previousImagePath || "";
 
       if (imageFile) {
         const fileExtension = path.extname(imageFile.originalname);
-        const newFileName = `${req.body.image_name}${fileExtension}`;
+
+        // Use image_name if present, otherwise fallback safely
+        const safeImageName =
+          req.body.image_name && req.body.image_name.trim()
+            ? req.body.image_name.trim()
+            : `blog_${Date.now()}`;
+
+        const newFileName = `${safeImageName}${fileExtension}`;
         imagePath = path.join("uploads/blog/", newFileName);
+
+        const dir = path.dirname(imagePath);
+        if (!fs.existsSync(dir)) {
+          fs.mkdirSync(dir, { recursive: true });
+        }
 
         // Delete previous image if exists
         if (previousImagePath && fs.existsSync(previousImagePath)) {
@@ -462,21 +474,28 @@ const blogEdit = (req, res) => {
 
         fs.renameSync(imageFile.path, imagePath);
       } else if (!imageHidden) {
-        // Image was removed from frontend and no new image uploaded
+        // User removed image from frontend and did not upload a new one
         if (previousImagePath && fs.existsSync(previousImagePath)) {
           fs.unlinkSync(previousImagePath);
         }
         imagePath = "";
+      } else {
+        // Keep old image
+        imagePath = previousImagePath || "";
       }
 
       // Handle banner image
       let bannerImagePath = previousBannerImagePath;
-      if (req.files && req.files.find(f => f.fieldname === 'banner_image')) {
-        const bannerFile = req.files.find(f => f.fieldname === 'banner_image');
+      if (req.files && req.files.find((f) => f.fieldname === "banner_image")) {
+        const bannerFile = req.files.find((f) => f.fieldname === "banner_image");
         const bannerFileName = `banner_${Date.now()}${path.extname(bannerFile.originalname)}`;
-        bannerImagePath = path.join('uploads/blog/', bannerFileName);
+        bannerImagePath = path.join("uploads/blog/", bannerFileName);
 
-        // Delete previous banner if exists
+        const dir = path.dirname(bannerImagePath);
+        if (!fs.existsSync(dir)) {
+          fs.mkdirSync(dir, { recursive: true });
+        }
+
         if (previousBannerImagePath && fs.existsSync(previousBannerImagePath)) {
           fs.unlinkSync(previousBannerImagePath);
         }
@@ -484,14 +503,12 @@ const blogEdit = (req, res) => {
         fs.renameSync(bannerFile.path, bannerImagePath);
       }
 
-      // Start transaction
-      connection.beginTransaction(err => {
+      connection.beginTransaction((err) => {
         if (err) {
           console.error("Transaction error:", err);
           return res.json({ error: true, message: "Transaction error" });
         }
 
-        // Update main blog data
         const blogData = {
           category_id: req.body.category_id,
           author_id: req.body.author_id,
@@ -522,10 +539,10 @@ const blogEdit = (req, res) => {
           banner_text_color: req.body.banner_text_color,
           banner_title: req.body.banner_title,
           banner_image: bannerImagePath,
-          updatedAt: dateFormat(new Date(), "yyyy-mm-dd HH:MM:ss")
+          updatedAt: dateFormat(new Date(), "yyyy-mm-dd HH:MM:ss"),
         };
 
-        connection.query('UPDATE blog SET ? WHERE id = ?', [blogData, req.body.id], (err) => {
+        connection.query("UPDATE blog SET ? WHERE id = ?", [blogData, req.body.id], (err) => {
           if (err) {
             return connection.rollback(() => {
               console.error("Blog update error:", err);
@@ -533,8 +550,7 @@ const blogEdit = (req, res) => {
             });
           }
 
-          // Delete existing sections and FAQs
-          connection.query('DELETE FROM blog_sections WHERE blog_id = ?', [req.body.id], (err) => {
+          connection.query("DELETE FROM blog_sections WHERE blog_id = ?", [req.body.id], (err) => {
             if (err) {
               return connection.rollback(() => {
                 console.error("Error deleting sections:", err);
@@ -542,7 +558,7 @@ const blogEdit = (req, res) => {
               });
             }
 
-            connection.query('DELETE FROM blog_faqs WHERE blog_id = ?', [req.body.id], (err) => {
+            connection.query("DELETE FROM blog_faqs WHERE blog_id = ?", [req.body.id], (err) => {
               if (err) {
                 return connection.rollback(() => {
                   console.error("Error deleting FAQs:", err);
@@ -550,10 +566,9 @@ const blogEdit = (req, res) => {
                 });
               }
 
-              // Insert sections
               let sections = [];
               try {
-                sections = JSON.parse(req.body.sections || '[]');
+                sections = JSON.parse(req.body.sections || "[]");
               } catch (e) {
                 console.error("Error parsing sections:", e);
                 return connection.rollback(() => {
@@ -565,11 +580,16 @@ const blogEdit = (req, res) => {
                 return new Promise((resolve, reject) => {
                   let mediaPath = null;
 
-                  const sectionFile = req.files && req.files.find(f => f.fieldname === `section_media_${index}`);
+                  const sectionFile =
+                    req.files && req.files.find((f) => f.fieldname === `section_media_${index}`);
 
-                  // If new file is uploaded and media type is image or video
-                  if ((section.media_type === "image" || section.media_type === "video") && sectionFile) {
-                    const mediaFileName = `section_${req.body.id}_${index}_${Date.now()}${path.extname(sectionFile.originalname)}`;
+                  if (
+                    (section.media_type === "image" || section.media_type === "video") &&
+                    sectionFile
+                  ) {
+                    const mediaFileName = `section_${req.body.id}_${index}_${Date.now()}${path.extname(
+                      sectionFile.originalname
+                    )}`;
                     mediaPath = path.join("uploads/blog/", mediaFileName);
 
                     const dir = path.dirname(mediaPath);
@@ -579,15 +599,9 @@ const blogEdit = (req, res) => {
 
                     fs.renameSync(sectionFile.path, mediaPath);
                     console.log(`Section ${index} media saved to:`, mediaPath);
-                  }
-
-                  // If media type is YouTube
-                  else if (section.media_type === "youtube" && typeof section.media === "string") {
+                  } else if (section.media_type === "youtube" && typeof section.media === "string") {
                     mediaPath = section.media;
-                  }
-
-                  // If no new file uploaded but existing image/video path is available, keep it
-                  else if (
+                  } else if (
                     (section.media_type === "image" || section.media_type === "video") &&
                     !sectionFile &&
                     typeof section.media === "string"
@@ -624,10 +638,9 @@ const blogEdit = (req, res) => {
                 });
               });
 
-              // Insert FAQs
               let faqs = [];
               try {
-                faqs = JSON.parse(req.body.faqs || '[]');
+                faqs = JSON.parse(req.body.faqs || "[]");
               } catch (e) {
                 console.error("Error parsing FAQs:", e);
                 return connection.rollback(() => {
@@ -635,7 +648,7 @@ const blogEdit = (req, res) => {
                 });
               }
 
-              const faqPromises = faqs.map(faq => {
+              const faqPromises = faqs.map((faq) => {
                 return new Promise((resolve, reject) => {
                   const faqData = {
                     blog_id: req.body.id,
@@ -644,20 +657,19 @@ const blogEdit = (req, res) => {
                     order: faq.order,
                     publish: faq.publish,
                     createdAt: dateFormat(new Date(), "yyyy-mm-dd HH:MM:ss"),
-                    updatedAt: dateFormat(new Date(), "yyyy-mm-dd HH:MM:ss")
+                    updatedAt: dateFormat(new Date(), "yyyy-mm-dd HH:MM:ss"),
                   };
 
-                  connection.query('INSERT INTO blog_faqs SET ?', faqData, (err) => {
+                  connection.query("INSERT INTO blog_faqs SET ?", faqData, (err) => {
                     if (err) reject(err);
                     else resolve();
                   });
                 });
               });
 
-              // Execute all promises
               Promise.all([...sectionPromises, ...faqPromises])
                 .then(() => {
-                  connection.commit(err => {
+                  connection.commit((err) => {
                     if (err) {
                       return connection.rollback(() => {
                         console.error("Commit error:", err);
@@ -667,7 +679,7 @@ const blogEdit = (req, res) => {
                     res.json({ error: false, message: "Blog updated successfully" });
                   });
                 })
-                .catch(err => {
+                .catch((err) => {
                   connection.rollback(() => {
                     console.error("Error in promises:", err);
                     res.json({ error: true, message: "Error updating blog details" });
@@ -683,7 +695,6 @@ const blogEdit = (req, res) => {
     res.json({ error: true, message: "An unexpected error occurred" });
   }
 };
-
 var blogDeleteData = (req, res) => {
   let sql = `DELETE FROM blog WHERE id = '${req.body.id}'`;
   connection.query(sql, function (err) {
