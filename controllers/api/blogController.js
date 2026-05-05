@@ -110,6 +110,7 @@ var blogAdd = (req, res) => {
       meta_title: req.body.meta_title,
       meta_keywords: req.body.meta_keywords,
       meta_description: req.body.meta_description,
+      schema_jsonld: req.body.schema_jsonld || null,
       publish: req.body.publish,
       // Banner fields
       banner_background_color: req.body.banner_background_color || null,
@@ -534,6 +535,7 @@ const blogEdit = (req, res) => {
           meta_title: req.body.meta_title,
           meta_keywords: req.body.meta_keywords,
           meta_description: req.body.meta_description,
+          schema_jsonld: req.body.schema_jsonld || null,
           publish: req.body.publish,
           banner_background_color: req.body.banner_background_color,
           banner_text_color: req.body.banner_text_color,
